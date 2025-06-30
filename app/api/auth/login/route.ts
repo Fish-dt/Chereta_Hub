@@ -1,8 +1,5 @@
-"use server"
-
 import { type NextRequest, NextResponse } from "next/server"
-import { verifyPassword, generateToken } from "@/lib/auth"
-import clientPromise from "@/lib/mongodb"
+import { verifyPassword, generateToken, getUserByEmail } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,29 +9,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    const client = await clientPromise
-    const db = client.db("auctionhub")
-    const user = await db.collection("users").findOne({ email })
+    const user = await getUserByEmail(email)
 
     if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
     const isValidPassword = await verifyPassword(password, user.password)
 
     if (!isValidPassword) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
     const token = generateToken(user._id.toString())
 
     const response = NextResponse.json({
       success: true,
+      message: "Signed in successfully",
       user: {
         id: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        avatar: user.avatar,
       },
     })
 
@@ -44,11 +41,12 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: "/",
     })
 
     return response
   } catch (error) {
     console.error("Login error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to sign in. Please try again." }, { status: 500 })
   }
 }

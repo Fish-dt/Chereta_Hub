@@ -1,18 +1,25 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Gavel, Eye, EyeOff } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Gavel, Eye, EyeOff, Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function RegisterPage() {
+  const router = useRouter()
+  const { register } = useAuth()
+  const { t, language } = useLanguage()
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -24,61 +31,92 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     })
+    // Clear error when user starts typing
+    if (error) setError("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match")
-      return
-    }
+    setError("")
+    setSuccess("")
+
     if (!agreeToTerms) {
-      alert("Please agree to the terms and conditions")
+      setError("Please agree to the terms and conditions")
       return
     }
 
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      console.log("Registration attempt:", formData)
-    }, 1000)
+    const result = await register(formData)
+
+    if (result.success) {
+      setSuccess("Account created successfully! Redirecting to sign in...")
+      setTimeout(() => {
+        router.push("/auth/login")
+      }, 2000)
+    } else {
+      setError(result.error || "Failed to create account")
+    }
+
+    setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-muted py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <Link href="/" className="flex items-center justify-center gap-2 font-bold text-2xl text-blue-600 mb-4">
+          <Link
+            href="/"
+            className={`flex items-center justify-center gap-2 font-bold text-2xl text-primary mb-4 ${language === "am" ? "font-amharic" : ""}`}
+          >
             <Gavel className="h-8 w-8" />
-            AuctionHub
+            {language === "am" ? "የጨረታ ማዕከል" : "AuctionHub"}
           </Link>
-          <h2 className="text-3xl font-bold text-gray-900">Create your account</h2>
-          <p className="mt-2 text-gray-600">
-            Already have an account?{" "}
-            <Link href="/auth/login" className="text-blue-600 hover:text-blue-500">
-              Sign in here
+          <h2 className={`text-3xl font-bold text-foreground ${language === "am" ? "font-amharic" : ""}`}>
+            {t("auth.signup.title")}
+          </h2>
+          <p className={`mt-2 text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
+            {t("auth.signup.subtitle")}{" "}
+            <Link href="/auth/login" className="text-primary hover:text-primary/80">
+              {t("nav.signin")}
             </Link>
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Join AuctionHub</CardTitle>
-            <CardDescription>Start bidding and selling today</CardDescription>
+            <CardTitle className={language === "am" ? "font-amharic" : ""}>Join AuctionHub</CardTitle>
+            <CardDescription className={language === "am" ? "font-amharic" : ""}>
+              Start bidding and selling today
+            </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert className="mb-6 border-green-200 bg-green-50 text-green-800">
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">First name</Label>
+                  <Label htmlFor="firstName" className={language === "am" ? "font-amharic" : ""}>
+                    {t("auth.first.name")}
+                  </Label>
                   <Input
                     id="firstName"
                     name="firstName"
@@ -91,7 +129,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Last name</Label>
+                  <Label htmlFor="lastName" className={language === "am" ? "font-amharic" : ""}>
+                    {t("auth.last.name")}
+                  </Label>
                   <Input
                     id="lastName"
                     name="lastName"
@@ -106,7 +146,9 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <Label htmlFor="email">Email address</Label>
+                <Label htmlFor="email" className={language === "am" ? "font-amharic" : ""}>
+                  {t("auth.email")}
+                </Label>
                 <Input
                   id="email"
                   name="email"
@@ -120,7 +162,9 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className={language === "am" ? "font-amharic" : ""}>
+                  {t("auth.password")}
+                </Label>
                 <div className="relative mt-1">
                   <Input
                     id="password"
@@ -144,7 +188,9 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <Label htmlFor="confirmPassword">Confirm password</Label>
+                <Label htmlFor="confirmPassword" className={language === "am" ? "font-amharic" : ""}>
+                  {t("auth.confirm.password")}
+                </Label>
                 <div className="relative mt-1">
                   <Input
                     id="confirmPassword"
@@ -173,20 +219,24 @@ export default function RegisterPage() {
                   checked={agreeToTerms}
                   onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
                 />
-                <Label htmlFor="terms" className="text-sm">
-                  I agree to the{" "}
-                  <Link href="/terms" className="text-blue-600 hover:text-blue-500">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="text-blue-600 hover:text-blue-500">
-                    Privacy Policy
-                  </Link>
+                <Label htmlFor="terms" className={`text-sm ${language === "am" ? "font-amharic" : ""}`}>
+                  {t("auth.terms")}
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create account"}
+              <Button
+                type="submit"
+                className={`w-full ${language === "am" ? "font-amharic" : ""}`}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  t("auth.signup.button")
+                )}
               </Button>
             </form>
 
@@ -196,12 +246,17 @@ export default function RegisterPage() {
                   <Separator />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                  <span className={`px-2 bg-card text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
+                    Or continue with
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button variant="outline" className="w-full bg-transparent">
+              <div className="mt-6">
+                <Button
+                  variant="outline"
+                  className={`w-full bg-transparent ${language === "am" ? "font-amharic" : ""}`}
+                >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
@@ -221,12 +276,6 @@ export default function RegisterPage() {
                     />
                   </svg>
                   Google
-                </Button>
-                <Button variant="outline" className="w-full bg-transparent">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.44.095 2.772.14v3.213h-1.904c-1.492 0-1.782.709-1.782 1.748v2.295h3.562l-.464 3.47h-3.098v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                  Facebook
                 </Button>
               </div>
             </div>

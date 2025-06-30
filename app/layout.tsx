@@ -5,6 +5,9 @@ import "./globals.css"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
+import { ThemeProvider } from "@/contexts/theme-context"
+import { LanguageProvider } from "@/contexts/language-context"
+import { AuthProvider } from "@/contexts/auth-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,12 +23,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Navbar />
-        <main>{children}</main>
-        <Footer />
-        <Toaster />
+        <ThemeProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <Navbar />
+              <main>{children}</main>
+              <Footer />
+              <Toaster />
+            </AuthProvider>
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
