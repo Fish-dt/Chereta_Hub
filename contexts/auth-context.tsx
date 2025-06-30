@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
+import { useSession, signIn, signOut } from "next-auth/react"
 
 interface User {
   id: string
@@ -16,6 +17,7 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  loginWithGoogle: () => Promise<void>
   register: (data: {
     email: string
     password: string
@@ -29,13 +31,32 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    checkAuthStatus()
-  }, [])
+    if (status === "loading") {
+      setIsLoading(true)
+      return
+    }
+
+    if (session?.user) {
+      setUser({
+        id: session.user.id || "",
+        email: session.user.email || "",
+        firstName: session.user.firstName || "",
+        lastName: session.user.lastName || "",
+        avatar: session.user.image || "",
+        role: (session.user as any).role || "user",
+      })
+    } else {
+      // Check for JWT-based auth (for email/password login)
+      checkAuthStatus()
+    }
+
+    setIsLoading(false)
+  }, [session, status])
 
   const checkAuthStatus = async () => {
     try {
@@ -46,8 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Auth check failed:", error)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -70,6 +89,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       return { success: false, error: "Network error. Please try again." }
     }
+  }
+
+  const loginWithGoogle = async () => {
+    await signIn("google", { callbackUrl: "/dashboard" })
   }
 
   const register = async (userData: {
@@ -100,14 +123,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
-      setUser(null)
+      if (session) {
+        await signOut({ callbackUrl: "/" })
+      } else {
+        await fetch("/api/auth/logout", { method: "POST" })
+        setUser(null)
+      }
     } catch (error) {
       console.error("Logout failed:", error)
     }
   }
 
-  return <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, loginWithGoogle, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

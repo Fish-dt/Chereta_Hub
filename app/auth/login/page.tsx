@@ -4,6 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { signIn, getSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +41,34 @@ export default function LoginPage() {
     }
 
     setIsLoading(false)
+  }
+
+  const handleGoogleLogin = async () => {
+    setError("")
+    setIsGoogleLoading(true)
+
+    try {
+      const result = await signIn("google", {
+        redirect: false,
+        callbackUrl: "/dashboard",
+      })
+
+      if (result?.error) {
+        setError("Failed to sign in with Google")
+      } else if (result?.ok) {
+        // Wait for session to be established
+        const session = await getSession()
+        if (session) {
+          router.push("/dashboard")
+          router.refresh()
+        }
+      }
+    } catch (error) {
+      console.error("Google sign in error:", error)
+      setError("Failed to sign in with Google")
+    } finally {
+      setIsGoogleLoading(false)
+    }
   }
 
   return (
@@ -77,107 +107,17 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label htmlFor="email" className={language === "am" ? "font-amharic" : ""}>
-                  {t("auth.email")}
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value)
-                    if (error) setError("")
-                  }}
-                  required
-                  className="mt-1"
-                  placeholder="Enter your email"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="password" className={language === "am" ? "font-amharic" : ""}>
-                  {t("auth.password")}
-                </Label>
-                <div className="relative mt-1">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value)
-                      if (error) setError("")
-                    }}
-                    required
-                    placeholder="Enter your password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
-                  />
-                  <Label htmlFor="remember-me" className={`ml-2 text-sm ${language === "am" ? "font-amharic" : ""}`}>
-                    {t("auth.remember")}
-                  </Label>
-                </div>
-
-                <Link
-                  href="/auth/forgot-password"
-                  className={`text-sm text-primary hover:text-primary/80 ${language === "am" ? "font-amharic" : ""}`}
-                >
-                  {t("auth.forgot.password")}
-                </Link>
-              </div>
-
+            {/* Google Sign In */}
+            <div className="mb-6">
               <Button
-                type="submit"
-                className={`w-full ${language === "am" ? "font-amharic" : ""}`}
-                disabled={isLoading}
+                onClick={handleGoogleLogin}
+                disabled={isGoogleLoading || isLoading}
+                variant="outline"
+                className={`w-full bg-transparent ${language === "am" ? "font-amharic" : ""}`}
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
+                {isGoogleLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  t("auth.signin.button")
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className={`px-2 bg-card text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <Button
-                  variant="outline"
-                  className={`w-full bg-transparent ${language === "am" ? "font-amharic" : ""}`}
-                >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
@@ -196,10 +136,109 @@ export default function LoginPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Google
-                </Button>
+                )}
+                Continue with Google
+              </Button>
+
+              <div className="relative mt-6">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className={`px-2 bg-card text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
+                    Or continue with email
+                  </span>
+                </div>
               </div>
             </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <Label htmlFor="email" className={language === "am" ? "font-amharic" : ""}>
+                  {t("auth.email")}
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (error) setError("")
+                  }}
+                  required
+                  className="mt-1"
+                  placeholder="Enter your email"
+                  disabled={isLoading || isGoogleLoading}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password" className={language === "am" ? "font-amharic" : ""}>
+                  {t("auth.password")}
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (error) setError("")
+                    }}
+                    required
+                    placeholder="Enter your password"
+                    disabled={isLoading || isGoogleLoading}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading || isGoogleLoading}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="h-4 w-4 text-primary focus:ring-primary border-input rounded"
+                    disabled={isLoading || isGoogleLoading}
+                  />
+                  <Label htmlFor="remember-me" className={`ml-2 text-sm ${language === "am" ? "font-amharic" : ""}`}>
+                    {t("auth.remember")}
+                  </Label>
+                </div>
+
+                <Link
+                  href="/auth/forgot-password"
+                  className={`text-sm text-primary hover:text-primary/80 ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  {t("auth.forgot.password")}
+                </Link>
+              </div>
+
+              <Button
+                type="submit"
+                className={`w-full ${language === "am" ? "font-amharic" : ""}`}
+                disabled={isLoading || isGoogleLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  t("auth.signin.button")
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>

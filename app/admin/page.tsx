@@ -1,15 +1,40 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { format } from "date-fns"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Users, Gavel, TrendingUp, AlertTriangle, Shield, Crown } from "lucide-react"
+import {
+  Users,
+  Gavel,
+  TrendingUp,
+  AlertTriangle,
+  Shield,
+  Crown,
+  Search,
+  MoreHorizontal,
+  Ban,
+  CheckCircle,
+  Eye,
+  Edit,
+  Trash2,
+  DollarSign,
+  Activity,
+} from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface User {
   _id: string
@@ -20,6 +45,21 @@ interface User {
   memberSince: string
   totalSales: number
   rating: number
+  isVerified: boolean
+  provider?: string
+}
+
+interface Auction {
+  _id: string
+  title: string
+  category: string
+  currentBid: number
+  startingBid: number
+  endTime: string
+  status: "active" | "ended" | "cancelled"
+  bidCount: number
+  sellerName: string
+  createdAt: string
 }
 
 interface AdminStats {
@@ -27,27 +67,47 @@ interface AdminStats {
   totalAuctions: number
   activeAuctions: number
   totalRevenue: number
+  newUsersToday: number
+  newAuctionsToday: number
+  pendingReports: number
+  successRate: number
 }
 
 export default function AdminPage() {
   const { user } = useAuth()
   const { t, language } = useLanguage()
   const [users, setUsers] = useState<User[]>([])
+  const [auctions, setAuctions] = useState<Auction[]>([])
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalAuctions: 0,
     activeAuctions: 0,
     totalRevenue: 0,
+    newUsersToday: 0,
+    newAuctionsToday: 0,
+    pendingReports: 0,
+    successRate: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedRole, setSelectedRole] = useState("all")
 
   useEffect(() => {
     if (user && (user.role === "admin" || user.role === "moderator")) {
-      fetchUsers()
-      fetchStats()
+      fetchData()
     }
   }, [user])
+
+  const fetchData = async () => {
+    try {
+      await Promise.all([fetchUsers(), fetchAuctions(), fetchStats()])
+    } catch (error) {
+      setError("Failed to fetch data")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const fetchUsers = async () => {
     try {
@@ -55,23 +115,35 @@ export default function AdminPage() {
       if (response.ok) {
         const data = await response.json()
         setUsers(data.users)
-      } else {
-        setError("Failed to fetch users")
       }
     } catch (error) {
-      setError("Network error")
-    } finally {
-      setIsLoading(false)
+      console.error("Error fetching users:", error)
+    }
+  }
+
+  const fetchAuctions = async () => {
+    try {
+      const response = await fetch("/api/admin/auctions")
+      if (response.ok) {
+        const data = await response.json()
+        setAuctions(data.auctions)
+      }
+    } catch (error) {
+      console.error("Error fetching auctions:", error)
     }
   }
 
   const fetchStats = async () => {
-    // Mock stats for now
+    // Mock stats for now - replace with actual API call
     setStats({
       totalUsers: 1250,
       totalAuctions: 3420,
       activeAuctions: 156,
       totalRevenue: 125000,
+      newUsersToday: 23,
+      newAuctionsToday: 12,
+      pendingReports: 5,
+      successRate: 98.5,
     })
   }
 
@@ -92,6 +164,47 @@ export default function AdminPage() {
       setError("Network error")
     }
   }
+
+  const suspendUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/suspend`, {
+        method: "PATCH",
+      })
+
+      if (response.ok) {
+        fetchUsers() // Refresh users list
+      } else {
+        setError("Failed to suspend user")
+      }
+    } catch (error) {
+      setError("Network error")
+    }
+  }
+
+  const deleteAuction = async (auctionId: string) => {
+    try {
+      const response = await fetch(`/api/admin/auctions/${auctionId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        setAuctions(auctions.filter((a) => a._id !== auctionId))
+      } else {
+        setError("Failed to delete auction")
+      }
+    } catch (error) {
+      setError("Network error")
+    }
+  }
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesRole = selectedRole === "all" || user.role === selectedRole
+    return matchesSearch && matchesRole
+  })
 
   if (!user) {
     return (
@@ -136,11 +249,11 @@ export default function AdminPage() {
             <Shield className="h-6 w-6 text-blue-500" />
           )}
           <h1 className={`text-3xl font-bold text-foreground ${language === "am" ? "font-amharic" : ""}`}>
-            {user.role === "admin" ? "Super Admin Panel" : "Moderator Panel"}
+            {user.role === "admin" ? "Super Admin Dashboard" : "Moderator Dashboard"}
           </h1>
         </div>
         <p className={`text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
-          Manage users, auctions, and platform settings
+          Comprehensive platform management and analytics
         </p>
       </div>
 
@@ -150,7 +263,7 @@ export default function AdminPage() {
         </Alert>
       )}
 
-      {/* Stats Cards */}
+      {/* Enhanced Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardContent className="p-6">
@@ -158,6 +271,7 @@ export default function AdminPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Users</p>
                 <p className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</p>
+                <p className="text-xs text-green-600">+{stats.newUsersToday} today</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
@@ -168,8 +282,9 @@ export default function AdminPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Auctions</p>
-                <p className="text-2xl font-bold">{stats.totalAuctions.toLocaleString()}</p>
+                <p className="text-sm font-medium text-muted-foreground">Active Auctions</p>
+                <p className="text-2xl font-bold">{stats.activeAuctions}</p>
+                <p className="text-xs text-green-600">+{stats.newAuctionsToday} today</p>
               </div>
               <Gavel className="h-8 w-8 text-green-600" />
             </div>
@@ -180,10 +295,11 @@ export default function AdminPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Auctions</p>
-                <p className="text-2xl font-bold">{stats.activeAuctions}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
+                <p className="text-xs text-green-600">{stats.successRate}% success rate</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
+              <DollarSign className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -192,39 +308,85 @@ export default function AdminPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
+                <p className="text-sm font-medium text-muted-foreground">Pending Reports</p>
+                <p className="text-2xl font-bold">{stats.pendingReports}</p>
+                <p className="text-xs text-orange-600">Requires attention</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-orange-600" />
+              <AlertTriangle className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
+      {/* Enhanced Tabs */}
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="auctions">Auctions</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>Manage user accounts and permissions</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>User Management</CardTitle>
+                  <CardDescription>Manage user accounts, roles, and permissions</CardDescription>
+                </div>
+                <Button>
+                  <Users className="h-4 w-4 mr-2" />
+                  Export Users
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
+              {/* Search and Filter */}
+              <div className="flex gap-4 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filter by role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="user">Users</SelectItem>
+                    <SelectItem value="moderator">Moderators</SelectItem>
+                    <SelectItem value="admin">Admins</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Users Table */}
               <div className="space-y-4">
-                {users.map((userData) => (
-                  <div key={userData._id} className="flex items-center justify-between p-4 border rounded-lg">
+                {filteredUsers.map((userData) => (
+                  <div
+                    key={userData._id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                  >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">
-                          {userData.firstName} {userData.lastName}
-                        </h3>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold">
+                            {userData.firstName} {userData.lastName}
+                          </h3>
+                          {userData.isVerified && <CheckCircle className="h-4 w-4 text-green-500" />}
+                          {userData.provider === "google" && (
+                            <Badge variant="outline" className="text-xs">
+                              Google
+                            </Badge>
+                          )}
+                        </div>
                         <Badge
                           variant={
                             userData.role === "admin"
@@ -240,15 +402,14 @@ export default function AdminPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{userData.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Member since {new Date(userData.memberSince).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{userData.totalSales} sales</p>
-                        <p className="text-xs text-muted-foreground">{userData.rating.toFixed(1)} ⭐ rating</p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                        <span>Member since {format(new Date(userData.memberSince), "MMM yyyy")}</span>
+                        <span>{userData.totalSales} sales</span>
+                        <span>{userData.rating.toFixed(1)} ⭐ rating</span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
                       {user.role === "admin" && (
                         <Select value={userData.role} onValueChange={(value) => updateUserRole(userData._id, value)}>
                           <SelectTrigger className="w-32">
@@ -261,6 +422,35 @@ export default function AdminPage() {
                           </SelectContent>
                         </Select>
                       )}
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit User
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => suspendUser(userData._id)} className="text-orange-600">
+                            <Ban className="h-4 w-4 mr-2" />
+                            Suspend User
+                          </DropdownMenuItem>
+                          {user.role === "admin" && (
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 ))}
@@ -272,13 +462,65 @@ export default function AdminPage() {
         <TabsContent value="auctions" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Auction Management</CardTitle>
-              <CardDescription>Monitor and manage all auctions</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Auction Management</CardTitle>
+                  <CardDescription>Monitor and manage all platform auctions</CardDescription>
+                </div>
+                <Button>
+                  <Gavel className="h-4 w-4 mr-2" />
+                  Export Auctions
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <Gavel className="mx-auto h-12 w-12 mb-4" />
-                <p>Auction management features coming soon</p>
+              <div className="space-y-4">
+                {auctions.map((auction) => (
+                  <div key={auction._id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold">{auction.title}</h3>
+                        <Badge variant={auction.status === "active" ? "default" : "secondary"}>{auction.status}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{auction.category}</p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>Current: ${auction.currentBid.toLocaleString()}</span>
+                        <span>{auction.bidCount} bids</span>
+                        <span>by {auction.sellerName}</span>
+                        <span>Ends {format(new Date(auction.endTime), "MMM dd, yyyy")}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Auction
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-orange-600">
+                            <Ban className="h-4 w-4 mr-2" />
+                            Suspend Auction
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => deleteAuction(auction._id)} className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Auction
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -287,13 +529,50 @@ export default function AdminPage() {
         <TabsContent value="reports" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Reports & Analytics</CardTitle>
-              <CardDescription>View platform analytics and reports</CardDescription>
+              <CardTitle>Reports & Moderation</CardTitle>
+              <CardDescription>Handle user reports and content moderation</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
-                <TrendingUp className="mx-auto h-12 w-12 mb-4" />
-                <p>Analytics dashboard coming soon</p>
+                <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
+                <p>No pending reports</p>
+                <p className="text-sm mt-2">All reports have been resolved</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Platform Analytics</CardTitle>
+              <CardDescription>Detailed insights and performance metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">User Growth</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="mx-auto h-12 w-12 mb-4" />
+                      <p>Analytics charts coming soon</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Revenue Trends</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <TrendingUp className="mx-auto h-12 w-12 mb-4" />
+                      <p>Revenue analytics coming soon</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
@@ -303,12 +582,38 @@ export default function AdminPage() {
           <Card>
             <CardHeader>
               <CardTitle>Platform Settings</CardTitle>
-              <CardDescription>Configure platform-wide settings</CardDescription>
+              <CardDescription>Configure platform-wide settings and preferences</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
-                <p>Settings panel coming soon</p>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">General Settings</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Maintenance Mode</p>
+                        <p className="text-sm text-muted-foreground">Enable maintenance mode for platform updates</p>
+                      </div>
+                      <Button variant="outline">Configure</Button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Email Notifications</p>
+                        <p className="text-sm text-muted-foreground">Manage system email notifications</p>
+                      </div>
+                      <Button variant="outline">Configure</Button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Payment Settings</p>
+                        <p className="text-sm text-muted-foreground">Configure payment gateways and fees</p>
+                      </div>
+                      <Button variant="outline">Configure</Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
