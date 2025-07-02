@@ -19,9 +19,10 @@ export const translations = {
     "nav.watchlist": "Watchlist",
     "nav.settings": "Settings",
     "nav.signout": "Sign Out",
+    "nav.messages": "Messages",
 
     // Hero Section
-    "hero.title": "AuctionHub",
+    "hero.title": "CheretaHub",
     "hero.subtitle": "Discover unique items, place winning bids, and find treasures from around the world",
     "hero.search.placeholder": "Search auctions...",
     "hero.search.button": "Search",
@@ -57,6 +58,17 @@ export const translations = {
     "auctions.watching": "Watching",
     "auctions.share": "Share",
     "auctions.report": "Report",
+    "auctions.pending.review": "Pending Review",
+    "auctions.approved": "Approved",
+    "auctions.rejected": "Rejected",
+
+    // Bidding
+    "bidding.highest.bidder": "You are the highest bidder!",
+    "bidding.outbid": "You have been outbid!",
+    "bidding.won": "Congratulations! You won this auction!",
+    "bidding.lost": "Auction ended. You didn't win this time.",
+    "bidding.contact.seller": "Contact Seller",
+    "bidding.contact.winner": "Contact Winner",
 
     // Authentication
     "auth.signin.title": "Sign in to your account",
@@ -84,6 +96,20 @@ export const translations = {
     "dashboard.bidding": "Bidding",
     "dashboard.selling": "Selling",
     "dashboard.history": "History",
+    "dashboard.messages": "Messages",
+
+    // Messages
+    "messages.title": "Messages",
+    "messages.no.conversations": "No conversations yet",
+    "messages.start.conversation": "Start a conversation",
+    "messages.type.message": "Type a message...",
+    "messages.send": "Send",
+
+    // Notifications
+    "notifications.title": "Notifications",
+    "notifications.mark.read": "Mark as read",
+    "notifications.mark.all.read": "Mark all as read",
+    "notifications.no.notifications": "No notifications",
 
     // Common
     "common.loading": "Loading...",
@@ -99,6 +125,8 @@ export const translations = {
     "common.back": "Back",
     "common.next": "Next",
     "common.previous": "Previous",
+    "common.approve": "Approve",
+    "common.reject": "Reject",
 
     // Theme
     "theme.light": "Light",
@@ -118,9 +146,10 @@ export const translations = {
     "nav.watchlist": "የክትትል ዝርዝር",
     "nav.settings": "ቅንብሮች",
     "nav.signout": "ውጣ",
+    "nav.messages": "መልዕክቶች",
 
     // Hero Section
-    "hero.title": "የጨረታ ማዕከል",
+    "hero.title": "ጨረታ ማዕከል",
     "hero.subtitle": "ልዩ ዕቃዎችን ያግኙ፣ አሸናፊ ጨረታዎችን ያድርጉ እና ከዓለም ዙሪያ ሀብቶችን ያግኙ",
     "hero.search.placeholder": "ጨረታዎችን ይፈልጉ...",
     "hero.search.button": "ፈልግ",
@@ -156,6 +185,17 @@ export const translations = {
     "auctions.watching": "እየተከታተለ",
     "auctions.share": "አጋራ",
     "auctions.report": "ሪፖርት",
+    "auctions.pending.review": "በመገምገም ላይ",
+    "auctions.approved": "ተቀባይነት አግኝቷል",
+    "auctions.rejected": "ተቀባይነት አላገኘም",
+
+    // Bidding
+    "bidding.highest.bidder": "እርስዎ ከፍተኛ ጨረታ አቅራቢ ነዎት!",
+    "bidding.outbid": "ጨረታዎ ተሸንፏል!",
+    "bidding.won": "እንኳን ደስ አለዎት! ይህን ጨረታ አሸንፈዋል!",
+    "bidding.lost": "ጨረታው አብቅቷል። ይህን ጊዜ አላሸነፉም።",
+    "bidding.contact.seller": "ሻጩን ያነጋግሩ",
+    "bidding.contact.winner": "አሸናፊውን ያነጋግሩ",
 
     // Authentication
     "auth.signin.title": "ወደ መለያዎ ይግቡ",
@@ -183,6 +223,20 @@ export const translations = {
     "dashboard.bidding": "ጨረታ",
     "dashboard.selling": "መሸጥ",
     "dashboard.history": "ታሪክ",
+    "dashboard.messages": "መልዕክቶች",
+
+    // Messages
+    "messages.title": "መልዕክቶች",
+    "messages.no.conversations": "ገና ምንም ውይይት የለም",
+    "messages.start.conversation": "ውይይት ይጀምሩ",
+    "messages.type.message": "መልዕክት ይተይቡ...",
+    "messages.send": "ላክ",
+
+    // Notifications
+    "notifications.title": "ማሳወቂያዎች",
+    "notifications.mark.read": "እንደተነበበ ምልክት አድርግ",
+    "notifications.mark.all.read": "ሁሉንም እንደተነበበ ምልክት አድርግ",
+    "notifications.no.notifications": "ማሳወቂያ የለም",
 
     // Common
     "common.loading": "እየጫነ...",
@@ -198,6 +252,8 @@ export const translations = {
     "common.back": "ተመለስ",
     "common.next": "ቀጣይ",
     "common.previous": "ቀዳሚ",
+    "common.approve": "ተቀበል",
+    "common.reject": "ውድቅ አድርግ",
 
     // Theme
     "theme.light": "ብሩህ",

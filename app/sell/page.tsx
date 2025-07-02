@@ -4,51 +4,36 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Upload, X } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { CalendarIcon, Upload, X, Loader2, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useLanguage } from "@/contexts/language-context"
-
-const auctionSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters"),
-  description: z.string().min(20, "Description must be at least 20 characters"),
-  category: z.string().min(1, "Please select a category"),
-  condition: z.string().min(1, "Please select a condition"),
-  startingBid: z.string().min(1, "Starting bid is required"),
-  buyNowPrice: z.string().optional(),
-  duration: z.string().min(1, "Please select auction duration"),
-})
-
-type AuctionFormData = z.infer<typeof auctionSchema>
+import { cn } from "@/lib/utils"
 
 const categories = [
-  "Art & Collectibles",
-  "Vehicles",
-  "Jewelry & Watches",
   "Electronics",
-  "Home & Garden",
   "Fashion",
-  "Sports & Recreation",
+  "Home & Garden",
+  "Sports & Outdoors",
+  "Automotive",
   "Books & Media",
+  "Art & Collectibles",
+  "Jewelry & Watches",
+  "Musical Instruments",
+  "Other",
 ]
 
-const conditions = ["New", "Like New", "Excellent", "Good", "Fair", "For Parts"]
-
-const durations = [
-  { value: "24", label: "1 Day" },
-  { value: "72", label: "3 Days" },
-  { value: "168", label: "7 Days" },
-  { value: "240", label: "10 Days" },
-]
+const conditions = ["New", "Like New", "Excellent", "Good", "Fair", "Poor"]
 
 export default function SellPage() {
   const router = useRouter()
@@ -57,21 +42,17 @@ export default function SellPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [images, setImages] = useState<string[]>([])
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<AuctionFormData>({
-    resolver: zodResolver(auctionSchema),
+  const [endDate, setEndDate] = useState<Date>()
+  const [images, setImages] = useState<File[]>([])
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "",
+    startingBid: "",
+    reservePrice: "",
+    condition: "",
+    location: "",
   })
-
-  const watchedCategory = watch("category")
-  const watchedCondition = watch("condition")
-  const watchedDuration = watch("duration")
 
   if (!user) {
     return (
@@ -89,32 +70,80 @@ export default function SellPage() {
     )
   }
 
-  const onSubmit = async (data: AuctionFormData) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: value,
+    })
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (images.length + files.length > 10) {
+      setError("Maximum 10 images allowed")
+      return
+    }
+    setImages([...images, ...files])
+  }
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
     setError("")
     setSuccess("")
-    setIsLoading(true)
+
+    if (!endDate) {
+      setError("Please select an end date")
+      setIsLoading(false)
+      return
+    }
+
+    if (images.length === 0) {
+      setError("Please upload at least one image")
+      setIsLoading(false)
+      return
+    }
 
     try {
-      const response = await fetch("/api/auctions/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          images,
-          specifications: {},
-          shippingInfo: {},
-        }),
+      const formDataToSend = new FormData()
+
+      // Add form fields
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataToSend.append(key, value)
       })
 
-      const result = await response.json()
+      formDataToSend.append("endTime", endDate.toISOString())
+
+      // Add images
+      images.forEach((image, index) => {
+        formDataToSend.append(`image${index}`, image)
+      })
+
+      const response = await fetch("/api/auctions/create", {
+        method: "POST",
+        body: formDataToSend,
+      })
+
+      const data = await response.json()
 
       if (response.ok) {
-        setSuccess("Auction created successfully! Redirecting...")
+        setSuccess("Auction created successfully! It will be reviewed by our team before going live.")
         setTimeout(() => {
-          router.push(`/auction/${result.auctionId}`)
+          router.push("/dashboard")
         }, 2000)
       } else {
-        setError(result.error || "Failed to create auction")
+        setError(data.error || "Failed to create auction")
       }
     } catch (error) {
       setError("Network error. Please try again.")
@@ -123,84 +152,82 @@ export default function SellPage() {
     }
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files) {
-      // In a real app, you'd upload to a cloud service
-      // For now, we'll use placeholder URLs
-      const newImages = Array.from(files).map(
-        (file, index) => `/placeholder.svg?height=300&width=400&text=${file.name}`,
-      )
-      setImages([...images, ...newImages].slice(0, 5)) // Max 5 images
-    }
-  }
-
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index))
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className={`text-3xl font-bold text-foreground ${language === "am" ? "font-amharic" : ""}`}>
-            Create New Auction
+            {t("sell.title")}
           </h1>
           <p className={`text-muted-foreground mt-2 ${language === "am" ? "font-amharic" : ""}`}>
-            List your item and start receiving bids from buyers worldwide
+            {t("sell.subtitle")}
           </p>
+          <div className="flex items-center gap-2 mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <Badge className="h-5 w-5 text-blue-600">Info</Badge>
+            <p className="text-sm text-blue-800 dark:text-blue-200">{t("sell.review.info")}</p>
+          </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Auction Details</CardTitle>
-            <CardDescription>Provide detailed information about your item</CardDescription>
+            <CardTitle>{t("sell.create.auction")}</CardTitle>
+            <CardDescription>{t("sell.review.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
               <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {success && (
-              <Alert className="mb-6 border-green-200 bg-green-50 text-green-800">
+              <Alert className="mb-6">
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
-              <div>
-                <Label htmlFor="title">Title *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="title">{t("sell.item.title")}</Label>
                 <Input
                   id="title"
-                  {...register("title")}
-                  placeholder="Enter a descriptive title for your item"
-                  className="mt-1"
+                  name="title"
+                  placeholder={t("sell.item.title.placeholder")}
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
                 />
-                {errors.title && <p className="text-sm text-destructive mt-1">{errors.title.message}</p>}
               </div>
 
               {/* Description */}
-              <div>
-                <Label htmlFor="description">Description *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="description">{t("sell.description")}</Label>
                 <Textarea
                   id="description"
-                  {...register("description")}
-                  placeholder="Provide detailed information about your item, including condition, history, and any defects"
-                  className="mt-1 min-h-[120px]"
+                  name="description"
+                  placeholder={t("sell.description.placeholder")}
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={4}
+                  required
+                  disabled={isLoading}
                 />
-                {errors.description && <p className="text-sm text-destructive mt-1">{errors.description.message}</p>}
               </div>
 
               {/* Category and Condition */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Category *</Label>
-                  <Select onValueChange={(value) => setValue("category", value)} value={watchedCategory}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select category" />
+                <div className="space-y-2">
+                  <Label>{t("sell.category")}</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => handleSelectChange("category", value)}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("sell.select.category")} />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category) => (
@@ -210,85 +237,116 @@ export default function SellPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.category && <p className="text-sm text-destructive mt-1">{errors.category.message}</p>}
                 </div>
 
-                <div>
-                  <Label>Condition *</Label>
-                  <Select onValueChange={(value) => setValue("condition", value)} value={watchedCondition}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select condition" />
+                <div className="space-y-2">
+                  <Label>{t("sell.condition")}</Label>
+                  <Select
+                    value={formData.condition}
+                    onValueChange={(value) => handleSelectChange("condition", value)}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("sell.select.condition")} />
                     </SelectTrigger>
                     <SelectContent>
                       {conditions.map((condition) => (
-                        <SelectItem key={condition} value={condition}>
+                        <SelectItem key={condition.toLowerCase()} value={condition.toLowerCase()}>
                           {condition}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.condition && <p className="text-sm text-destructive mt-1">{errors.condition.message}</p>}
                 </div>
               </div>
 
               {/* Pricing */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="startingBid">Starting Bid ($) *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="startingBid">{t("sell.starting.bid")}</Label>
                   <Input
                     id="startingBid"
+                    name="startingBid"
                     type="number"
-                    step="0.01"
                     min="1"
-                    {...register("startingBid")}
+                    step="0.01"
                     placeholder="0.00"
-                    className="mt-1"
+                    value={formData.startingBid}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading}
                   />
-                  {errors.startingBid && <p className="text-sm text-destructive mt-1">{errors.startingBid.message}</p>}
                 </div>
 
-                <div>
-                  <Label htmlFor="buyNowPrice">Buy It Now Price ($)</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="reservePrice">{t("sell.reserve.price")} (Optional)</Label>
                   <Input
-                    id="buyNowPrice"
+                    id="reservePrice"
+                    name="reservePrice"
                     type="number"
-                    step="0.01"
                     min="1"
-                    {...register("buyNowPrice")}
-                    placeholder="Optional"
-                    className="mt-1"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={formData.reservePrice}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
                   />
-                  {errors.buyNowPrice && <p className="text-sm text-destructive mt-1">{errors.buyNowPrice.message}</p>}
                 </div>
               </div>
 
-              {/* Duration */}
-              <div>
-                <Label>Auction Duration *</Label>
-                <Select onValueChange={(value) => setValue("duration", value)} value={watchedDuration}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {durations.map((duration) => (
-                      <SelectItem key={duration.value} value={duration.value}>
-                        {duration.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.duration && <p className="text-sm text-destructive mt-1">{errors.duration.message}</p>}
+              {/* Location and End Date */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="location">{t("sell.location")}</Label>
+                  <Input
+                    id="location"
+                    name="location"
+                    placeholder={t("sell.location.placeholder")}
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t("sell.end.date")}</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground",
+                        )}
+                        disabled={isLoading}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP") : <span>{t("sell.pick.date")}</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               {/* Images */}
-              <div>
-                <Label>Images</Label>
-                <div className="mt-2">
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                    <Upload className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <div className="space-y-2">
+                <Label>{t("sell.images")} (Max 10)</Label>
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div className="mt-4">
                       <Label htmlFor="images" className="cursor-pointer">
-                        <span className="text-primary hover:text-primary/80">Upload images</span>
+                        <span className="text-primary hover:text-primary/80">{t("sell.upload.images")}</span>
                         <Input
                           id="images"
                           type="file"
@@ -296,51 +354,52 @@ export default function SellPage() {
                           accept="image/*"
                           onChange={handleImageUpload}
                           className="hidden"
+                          disabled={isLoading}
                         />
                       </Label>
-                      <p className="text-sm text-muted-foreground mt-1">PNG, JPG, GIF up to 10MB each (max 5 images)</p>
                     </div>
+                    <p className="text-xs text-muted-foreground mt-2">{t("sell.image.size")}</p>
                   </div>
-
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                      {images.map((image, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={image || "/placeholder.svg"}
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-24 object-cover rounded border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6"
-                            onClick={() => removeImage(index)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
+
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    {images.map((image, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(image) || "/placeholder.svg"}
+                          alt={`Upload ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={() => removeImage(index)}
+                          disabled={isLoading}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Submit */}
               <div className="flex gap-4">
-                <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">
-                  Cancel
-                </Button>
                 <Button type="submit" disabled={isLoading} className="flex-1">
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
+                      {t("sell.creating")}
                     </>
                   ) : (
-                    "Create Auction"
+                    t("sell.create.auction")
                   )}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
+                  {t("common.cancel")}
                 </Button>
               </div>
             </form>

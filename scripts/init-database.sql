@@ -1,67 +1,106 @@
--- MongoDB doesn't use SQL, but here's the equivalent structure for reference
--- This would be implemented using MongoDB collections
+-- MongoDB Collections Schema (for reference)
+-- This file documents the MongoDB collections structure
 
 -- Users Collection
-{
-  "_id": ObjectId,
-  "email": String,
-  "password": String, // hashed
-  "firstName": String,
-  "lastName": String,
-  "avatar": String,
-  "rating": Number,
-  "totalSales": Number,
-  "memberSince": Date,
-  "isVerified": Boolean,
-  "createdAt": Date,
-  "updatedAt": Date
-}
+-- {
+--   _id: ObjectId,
+--   firstName: String,
+--   lastName: String,
+--   email: String (unique),
+--   password: String (hashed),
+--   role: String (user|moderator|admin),
+--   avatar: String (optional),
+--   isVerified: Boolean,
+--   provider: String (optional - google),
+--   memberSince: Date,
+--   totalSales: Number,
+--   rating: Number,
+--   isActive: Boolean,
+--   createdAt: Date,
+--   updatedAt: Date
+-- }
 
 -- Auctions Collection
-{
-  "_id": ObjectId,
-  "title": String,
-  "description": String,
-  "category": String,
-  "condition": String,
-  "images": [String],
-  "startingBid": Number,
-  "currentBid": Number,
-  "buyNowPrice": Number,
-  "endTime": Date,
-  "sellerId": ObjectId,
-  "status": String, // active, ended, cancelled
-  "bidCount": Number,
-  "watchers": Number,
-  "specifications": Object,
-  "shippingInfo": Object,
-  "createdAt": Date,
-  "updatedAt": Date
-}
+-- {
+--   _id: ObjectId,
+--   title: String,
+--   description: String,
+--   category: String,
+--   startingBid: Number,
+--   currentBid: Number,
+--   reservePrice: Number (optional),
+--   condition: String,
+--   location: String,
+--   endTime: Date,
+--   sellerId: String,
+--   sellerName: String,
+--   winnerId: String (optional),
+--   winnerName: String (optional),
+--   finalPrice: Number (optional),
+--   bidCount: Number,
+--   status: String (pending_review|active|completed|ended_no_bids|ended_no_reserve|rejected|cancelled),
+--   images: Array[String],
+--   reviewedBy: String (optional),
+--   reviewedAt: Date (optional),
+--   rejectionReason: String (optional),
+--   completedAt: Date (optional),
+--   createdAt: Date,
+--   updatedAt: Date
+-- }
 
 -- Bids Collection
-{
-  "_id": ObjectId,
-  "auctionId": ObjectId,
-  "userId": ObjectId,
-  "amount": Number,
-  "timestamp": Date,
-  "isWinning": Boolean
-}
+-- {
+--   _id: ObjectId,
+--   auctionId: ObjectId,
+--   bidderId: String,
+--   bidderName: String,
+--   bidAmount: Number,
+--   timestamp: Date,
+--   isWinning: Boolean
+-- }
 
--- Watchlist Collection
-{
-  "_id": ObjectId,
-  "userId": ObjectId,
-  "auctionId": ObjectId,
-  "addedAt": Date
-}
+-- Notifications Collection
+-- {
+--   _id: ObjectId,
+--   type: String (auction_review|auction_status|new_bid|outbid|auction_won|auction_sold|auction_ended),
+--   title: String,
+--   message: String,
+--   recipientId: String (optional),
+--   recipientRole: String (optional - admin|moderator),
+--   auctionId: ObjectId (optional),
+--   isRead: Boolean,
+--   readAt: Date (optional),
+--   createdAt: Date
+-- }
 
--- Categories Collection
-{
-  "_id": ObjectId,
-  "name": String,
-  "description": String,
-  "icon": String,
-  "itemCount": Number
-}
+-- Conversations Collection
+-- {
+--   _id: ObjectId,
+--   participants: Array[String],
+--   auctionId: ObjectId,
+--   createdAt: Date,
+--   lastMessageAt: Date
+-- }
+
+-- Messages Collection
+-- {
+--   _id: ObjectId,
+--   conversationId: ObjectId,
+--   senderId: String,
+--   senderName: String,
+--   message: String,
+--   timestamp: Date,
+--   isRead: Boolean
+-- }
+
+-- Indexes for better performance
+-- db.users.createIndex({ "email": 1 }, { unique: true })
+-- db.auctions.createIndex({ "status": 1, "endTime": 1 })
+-- db.auctions.createIndex({ "sellerId": 1 })
+-- db.auctions.createIndex({ "category": 1 })
+-- db.bids.createIndex({ "auctionId": 1, "bidAmount": -1 })
+-- db.bids.createIndex({ "bidderId": 1 })
+-- db.notifications.createIndex({ "recipientId": 1, "isRead": 1 })
+-- db.notifications.createIndex({ "recipientRole": 1, "isRead": 1 })
+-- db.conversations.createIndex({ "participants": 1 })
+-- db.messages.createIndex({ "conversationId": 1, "timestamp": 1 })
