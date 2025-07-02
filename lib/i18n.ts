@@ -5,7 +5,7 @@ export const languages = {
 
 export type Language = keyof typeof languages
 
-export const translations = {
+export const translations: Record<string, Record<string, string>> = {
   en: {
     // Navigation
     "nav.browse": "Browse Auctions",
@@ -264,10 +264,10 @@ export const translations = {
 
 export function useTranslation(language: Language = "en") {
   return {
-    t: (key: keyof typeof translations.en) => {
-      return translations[language][key] || translations.en[key] || key
+    t: (key: string) => {
+      return translations[language][key] || translations.en[key] || key;
     },
     language,
     languages,
-  }
+  };
 }
