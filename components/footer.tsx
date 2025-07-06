@@ -1,88 +1,157 @@
+"use client"
+
 import Link from "next/link"
 import { Gavel, Facebook, Twitter, Instagram, Mail } from "lucide-react"
+import { useLanguage } from "@/contexts/language-context"
 
 export function Footer() {
+  const { language } = useLanguage()
+
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-4 gap-8">
+    <footer className="bg-gray-900 text-white py-12">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-              <Gavel className="h-6 w-6 text-blue-400" />
-              AuctionHub
+              <Gavel className="h-6 w-6" />
+              <span className={language === "am" ? "font-amharic" : ""}>
+                {language === "am" ? "ጨረታ ማዕከል" : "CheretaHub"}
+              </span>
             </Link>
-            <p className="text-gray-400">
-              The world's leading online auction platform. Discover unique items and place winning bids.
+            <p className={`text-gray-400 ${language === "am" ? "font-amharic" : ""}`}>
+              Your trusted platform for online auctions and unique finds.
             </p>
-            <div className="flex gap-4">
-              <Facebook className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
-              <Twitter className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
-              <Instagram className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
-              <Mail className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
+            <div className="flex space-x-4">
+              <Facebook className="h-5 w-5 hover:text-blue-400 cursor-pointer" />
+              <Twitter className="h-5 w-5 hover:text-blue-400 cursor-pointer" />
+              <Instagram className="h-5 w-5 hover:text-pink-400 cursor-pointer" />
+              <Mail className="h-5 w-5 hover:text-green-400 cursor-pointer" />
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold mb-4">Quick Links</h3>
-            <div className="space-y-2">
-              <Link href="/auctions" className="block text-gray-400 hover:text-white">
-                Browse Auctions
-              </Link>
-              <Link href="/categories" className="block text-gray-400 hover:text-white">
-                Categories
-              </Link>
-              <Link href="/sell" className="block text-gray-400 hover:text-white">
-                Start Selling
-              </Link>
-              <Link href="/how-it-works" className="block text-gray-400 hover:text-white">
-                How It Works
-              </Link>
-            </div>
+            <h3 className={`font-semibold mb-4 ${language === "am" ? "font-amharic" : ""}`}>Quick Links</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/auctions"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Browse Auctions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/sell"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Start Selling
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/how-it-works"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  How It Works
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/categories"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Categories
+                </Link>
+              </li>
+            </ul>
           </div>
 
           {/* Support */}
           <div>
-            <h3 className="font-semibold mb-4">Support</h3>
-            <div className="space-y-2">
-              <Link href="/help" className="block text-gray-400 hover:text-white">
-                Help Center
-              </Link>
-              <Link href="/contact" className="block text-gray-400 hover:text-white">
-                Contact Us
-              </Link>
-              <Link href="/safety" className="block text-gray-400 hover:text-white">
-                Safety Tips
-              </Link>
-              <Link href="/dispute" className="block text-gray-400 hover:text-white">
-                Dispute Resolution
-              </Link>
-            </div>
+            <h3 className={`font-semibold mb-4 ${language === "am" ? "font-amharic" : ""}`}>Support</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/help"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/contact"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/safety"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Safety Tips
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/disputes"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Dispute Resolution
+                </Link>
+              </li>
+            </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h3 className="font-semibold mb-4">Legal</h3>
-            <div className="space-y-2">
-              <Link href="/terms" className="block text-gray-400 hover:text-white">
-                Terms of Service
-              </Link>
-              <Link href="/privacy" className="block text-gray-400 hover:text-white">
-                Privacy Policy
-              </Link>
-              <Link href="/cookies" className="block text-gray-400 hover:text-white">
-                Cookie Policy
-              </Link>
-              <Link href="/fees" className="block text-gray-400 hover:text-white">
-                Fees & Charges
-              </Link>
-            </div>
+            <h3 className={`font-semibold mb-4 ${language === "am" ? "font-amharic" : ""}`}>Legal</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/terms"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/cookies"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Cookie Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/fees"
+                  className={`text-gray-400 hover:text-white ${language === "am" ? "font-amharic" : ""}`}
+                >
+                  Fees & Charges
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 AuctionHub. All rights reserved.</p>
+        <div className="border-t border-gray-800 mt-8 pt-8 text-center">
+          <p className={`text-gray-400 ${language === "am" ? "font-amharic" : ""}`}>
+            © 2024 CheretaHub. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

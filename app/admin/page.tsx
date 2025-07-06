@@ -26,7 +26,7 @@ import {
   DollarSign,
   Activity,
 } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
+import { useSession } from "next-auth/react"
 import { useLanguage } from "@/contexts/language-context"
 import {
   DropdownMenu,
@@ -74,7 +74,7 @@ interface AdminStats {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth()
+  const { data: session } = useSession();
   const { t, language } = useLanguage()
   const [users, setUsers] = useState<User[]>([])
   const [auctions, setAuctions] = useState<Auction[]>([])
@@ -94,10 +94,10 @@ export default function AdminPage() {
   const [selectedRole, setSelectedRole] = useState("all")
 
   useEffect(() => {
-    if (user && (user.role === "admin" || user.role === "moderator")) {
+    if (session && (session.user.role === "admin" || session.user.role === "moderator")) {
       fetchData()
     }
-  }, [user])
+  }, [session])
 
   const fetchData = async () => {
     try {
@@ -206,7 +206,7 @@ export default function AdminPage() {
     return matchesSearch && matchesRole
   })
 
-  if (!user) {
+  if (!session) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
@@ -222,7 +222,7 @@ export default function AdminPage() {
     )
   }
 
-  if (user.role !== "admin" && user.role !== "moderator") {
+  if (session.user.role !== "admin" && session.user.role !== "moderator") {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
@@ -243,13 +243,13 @@ export default function AdminPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
-          {user.role === "admin" ? (
+          {session.user.role === "admin" ? (
             <Crown className="h-6 w-6 text-yellow-500" />
           ) : (
             <Shield className="h-6 w-6 text-blue-500" />
           )}
           <h1 className={`text-3xl font-bold text-foreground ${language === "am" ? "font-amharic" : ""}`}>
-            {user.role === "admin" ? "Super Admin Dashboard" : "Moderator Dashboard"}
+            {session.user.role === "admin" ? "Super Admin Dashboard" : "Moderator Dashboard"}
           </h1>
         </div>
         <p className={`text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
@@ -410,7 +410,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {user.role === "admin" && (
+                      {session.user.role === "admin" && (
                         <Select value={userData.role} onValueChange={(value) => updateUserRole(userData._id, value)}>
                           <SelectTrigger className="w-32">
                             <SelectValue />
@@ -443,7 +443,7 @@ export default function AdminPage() {
                             <Ban className="h-4 w-4 mr-2" />
                             Suspend User
                           </DropdownMenuItem>
-                          {user.role === "admin" && (
+                          {session.user.role === "admin" && (
                             <DropdownMenuItem className="text-destructive">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete User

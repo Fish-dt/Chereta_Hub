@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -16,9 +17,9 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { CalendarIcon, Upload, X, Loader2, AlertCircle } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
-import { useLanguage } from "@/contexts/language-context"
+import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/contexts/language-context"
 
 const categories = [
   "Electronics",
@@ -37,7 +38,7 @@ const conditions = ["New", "Like New", "Excellent", "Good", "Fair", "Poor"]
 
 export default function SellPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { data: session } = useSession()
   const { t, language } = useLanguage()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -49,12 +50,11 @@ export default function SellPage() {
     description: "",
     category: "",
     startingBid: "",
-    reservePrice: "",
     condition: "",
     location: "",
   })
 
-  if (!user) {
+  if (!session) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
@@ -62,7 +62,7 @@ export default function SellPage() {
             <h2 className="text-xl font-semibold mb-4">Sign In Required</h2>
             <p className="text-muted-foreground mb-4">You need to sign in to create an auction.</p>
             <Button asChild>
-              <a href="/auth/login">Sign In</a>
+              <Link href="/auth/login?callbackUrl=/sell">Sign In</Link>
             </Button>
           </CardContent>
         </Card>
@@ -140,6 +140,7 @@ export default function SellPage() {
       if (response.ok) {
         setSuccess("Auction created successfully! It will be reviewed by our team before going live.")
         setTimeout(() => {
+          console.log("Redirecting to dashboard after auction creation")
           router.push("/dashboard")
         }, 2000)
       } else {
@@ -261,7 +262,7 @@ export default function SellPage() {
               </div>
 
               {/* Pricing */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startingBid">{t("sell.starting.bid")}</Label>
                   <Input
@@ -278,20 +279,7 @@ export default function SellPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reservePrice">{t("sell.reserve.price")} (Optional)</Label>
-                  <Input
-                    id="reservePrice"
-                    name="reservePrice"
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.reservePrice}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                  />
-                </div>
+
               </div>
 
               {/* Location and End Date */}
@@ -399,7 +387,7 @@ export default function SellPage() {
                   )}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
-                  {t("common.cancel")}
+                  Cancel
                 </Button>
               </div>
             </form>

@@ -1,7 +1,10 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -9,27 +12,44 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Gavel, Search, User, Heart, Bell, Settings, LogOut, Menu, X, MessageCircle } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Gavel,
+  Search,
+  Bell,
+  User,
+  Settings,
+  LogOut,
+  Menu,
+  Plus,
+  MessageSquare,
+  Heart,
+  ShoppingBag,
+} from "lucide-react"
+import { useSession, signOut } from "next-auth/react"
 import { useLanguage } from "@/contexts/language-context"
-import { useAuth } from "@/contexts/auth-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const { user, logout } = useAuth()
+  const router = useRouter()
+  const pathname = usePathname()
+  const { data: session } = useSession()
   const { t, language } = useLanguage()
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
-    if (user) {
+    if (session) {
       fetchNotifications()
     }
-  }, [user])
+  }, [session])
 
   const fetchNotifications = async () => {
     try {
@@ -44,63 +64,78 @@ export function Navbar() {
     }
   }
 
-  const markNotificationAsRead = async (notificationId: string) => {
-    try {
-      await fetch(`/api/notifications/${notificationId}/read`, {
-        method: "PATCH",
-      })
-      fetchNotifications()
-    } catch (error) {
-      console.error("Error marking notification as read:", error)
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/auth/login" })
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/auctions?search=${encodeURIComponent(searchQuery)}`)
     }
   }
 
-  const handleLogout = async () => {
-    await logout()
-    setIsMenuOpen(false)
-  }
+  const navItems = [
+    { href: "/auctions", label: t("nav.auctions") },
+    { href: "/categories", label: t("nav.categories") },
+    { href: "/how-it-works", label: t("nav.how.it.works") },
+  ]
 
   return (
-    <nav className="bg-background shadow-sm border-b sticky top-0 z-50">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link
-            href="/"
-            className={`flex items-center gap-2 font-bold text-xl text-primary ${language === "am" ? "font-amharic" : ""}`}
-          >
-            <Gavel className="h-6 w-6" />
-            {language === "am" ? "ጨረታ ማዕከል" : "CheretaHub"}
+          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+            <Gavel className="h-6 w-6 text-primary" />
+            <span className={language === "am" ? "font-amharic" : ""}>
+              {language === "am" ? "ጨረታ ማዕከል" : "CheretaHub"}
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className={`hidden md:flex items-center gap-6 ${language === "am" ? "font-amharic" : ""}`}>
-            <Link href="/auctions" className="text-foreground hover:text-primary transition-colors">
-              {t("nav.browse")}
-            </Link>
-            <Link href="/categories" className="text-foreground hover:text-primary transition-colors">
-              {t("nav.categories")}
-            </Link>
-            <Link href="/sell" className="text-foreground hover:text-primary transition-colors">
-              {t("nav.sell")}
-            </Link>
-          </div>
+          <nav className="hidden md:flex items-center gap-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  pathname === item.href ? "text-primary" : "text-muted-foreground"
+                } ${language === "am" ? "font-amharic" : ""}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
           {/* Search Bar */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
+          <form onSubmit={handleSearch} className="hidden lg:flex items-center gap-2 flex-1 max-w-sm mx-6">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input placeholder={t("hero.search.placeholder")} className="pl-10" />
+              <Input
+                placeholder={t("nav.search.placeholder")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </div>
+          </form>
 
-          {/* User Actions */}
+          {/* Right Side Actions */}
           <div className="flex items-center gap-2">
-            <LanguageSwitcher />
             <ThemeToggle />
+            <LanguageSwitcher />
 
-            {user ? (
+            {session ? (
               <>
+                {/* Sell Button */}
+                <Button asChild size="sm" className={`hidden sm:flex ${language === "am" ? "font-amharic" : ""}`}>
+                  <Link href="/sell">
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t("nav.sell")}
+                  </Link>
+                </Button>
+
                 {/* Notifications */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -114,154 +149,162 @@ export function Navbar() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-80">
-                    <div className="p-2 font-semibold border-b">{t("notifications.title")}</div>
+                    <DropdownMenuLabel className={language === "am" ? "font-amharic" : ""}>
+                      {t("nav.notifications")}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
                     {notifications.length > 0 ? (
-                      notifications.slice(0, 5).map((notification) => (
-                        <DropdownMenuItem
-                          key={notification._id}
-                          className="p-3 cursor-pointer"
-                          onClick={() => markNotificationAsRead(notification._id)}
-                        >
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{notification.title}</p>
-                            <p className="text-xs text-muted-foreground">{notification.message}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(notification.createdAt).toLocaleDateString()}
-                            </p>
+                      notifications.slice(0, 5).map((notification: any) => (
+                        <DropdownMenuItem key={notification._id} className="flex flex-col items-start p-3">
+                          <div className="font-medium">{notification.title}</div>
+                          <div className="text-sm text-muted-foreground">{notification.message}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(notification.createdAt).toLocaleDateString()}
                           </div>
-                          {!notification.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full ml-2" />}
                         </DropdownMenuItem>
                       ))
                     ) : (
-                      <div className="p-4 text-center text-muted-foreground">{t("notifications.no.notifications")}</div>
+                      <DropdownMenuItem disabled className={language === "am" ? "font-amharic" : ""}>
+                        {t("nav.no.notifications")}
+                      </DropdownMenuItem>
                     )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/notifications" className={language === "am" ? "font-amharic" : ""}>
+                        {t("nav.view.all")}
+                      </Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
                 {/* Messages */}
-                <Button variant="ghost" size="icon" asChild>
+                <Button asChild variant="ghost" size="icon">
                   <Link href="/messages">
-                    <MessageCircle className="h-5 w-5" />
-                  </Link>
-                </Button>
-
-                {/* Watchlist */}
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/watchlist">
-                    <Heart className="h-5 w-5" />
+                    <MessageSquare className="h-5 w-5" />
                   </Link>
                 </Button>
 
                 {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <User className="h-5 w-5" />
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={session.user.avatar || "/placeholder.svg"} alt={session.user.firstName} />
+                        <AvatarFallback>
+                          {session.user.firstName?.[0]}
+                          {session.user.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className={`w-56 ${language === "am" ? "font-amharic" : ""}`}>
-                    <div className="px-2 py-1.5 text-sm font-medium">
-                      {user.firstName} {user.lastName}
-                    </div>
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">{user.email}</div>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {session.user.firstName} {session.user.lastName}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">{session.user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard">{t("nav.dashboard")}</Link>
+                      <Link href="/profile" className={language === "am" ? "font-amharic" : ""}>
+                        <User className="mr-2 h-4 w-4" />
+                        {t("nav.profile")}
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/profile">{t("nav.profile")}</Link>
+                      <Link href="/dashboard" className={language === "am" ? "font-amharic" : ""}>
+                        <ShoppingBag className="mr-2 h-4 w-4" />
+                        {t("nav.dashboard")}
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/bids">{t("nav.bids")}</Link>
+                      <Link href="/watchlist" className={language === "am" ? "font-amharic" : ""}>
+                        <Heart className="mr-2 h-4 w-4" />
+                        {t("nav.watchlist")}
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/messages">{t("nav.messages")}</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {(user.role === "admin" || user.role === "moderator") && (
-                      <>
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin">Admin Panel</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings">
-                        <Settings className="h-4 w-4 mr-2" />
+                      <Link href="/settings" className={language === "am" ? "font-amharic" : ""}>
+                        <Settings className="mr-2 h-4 w-4" />
                         {t("nav.settings")}
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      {t("nav.signout")}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className={language === "am" ? "font-amharic" : ""}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      {t("nav.logout")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
             ) : (
-              <div className={`hidden md:flex items-center gap-2 ${language === "am" ? "font-amharic" : ""}`}>
-                <Button variant="ghost" asChild>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="ghost" size="sm" className={language === "am" ? "font-amharic" : ""}>
                   <Link href="/auth/login">{t("nav.signin")}</Link>
                 </Button>
-                <Button asChild>
+                <Button asChild size="sm" className={language === "am" ? "font-amharic" : ""}>
                   <Link href="/auth/register">{t("nav.signup")}</Link>
                 </Button>
               </div>
             )}
 
-            {/* Mobile Menu Button */}
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+            {/* Mobile Menu */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80">
+                <div className="flex flex-col gap-4 mt-8">
+                  {/* Mobile Search */}
+                  <form onSubmit={handleSearch} className="flex gap-2">
+                    <Input
+                      placeholder={t("nav.search.placeholder")}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Button type="submit" size="icon">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </form>
+
+                  {/* Mobile Navigation */}
+                  <nav className="flex flex-col gap-2">
+                    {navItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`text-sm font-medium p-2 rounded-md transition-colors hover:bg-accent ${
+                          pathname === item.href ? "bg-accent" : ""
+                        } ${language === "am" ? "font-amharic" : ""}`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </nav>
+
+                  {session && (
+                    <>
+                      <div className="border-t pt-4">
+                        <Link
+                          href="/sell"
+                          className={`flex items-center gap-2 p-2 rounded-md hover:bg-accent ${language === "am" ? "font-amharic" : ""}`}
+                        >
+                          <Plus className="h-4 w-4" />
+                          {t("nav.sell")}
+                        </Link>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className={`md:hidden border-t py-4 space-y-4 ${language === "am" ? "font-amharic" : ""}`}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input placeholder={t("hero.search.placeholder")} className="pl-10" />
-            </div>
-
-            <div className="space-y-2">
-              <Link
-                href="/auctions"
-                className="block py-2 text-foreground hover:text-primary"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {t("nav.browse")}
-              </Link>
-              <Link
-                href="/categories"
-                className="block py-2 text-foreground hover:text-primary"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {t("nav.categories")}
-              </Link>
-              <Link
-                href="/sell"
-                className="block py-2 text-foreground hover:text-primary"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {t("nav.sell")}
-              </Link>
-            </div>
-
-            {!user && (
-              <div className="flex gap-2 pt-4 border-t">
-                <Button variant="ghost" asChild className="flex-1">
-                  <Link href="/auth/login">{t("nav.signin")}</Link>
-                </Button>
-                <Button asChild className="flex-1">
-                  <Link href="/auth/register">{t("nav.signup")}</Link>
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
-    </nav>
+    </header>
   )
 }

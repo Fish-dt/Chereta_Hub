@@ -31,3 +31,10 @@ if (process.env.NODE_ENV === "development") {
 // Export a module-scoped MongoClient promise. By doing this in a
 // separate module, the client can be shared across functions.
 export default clientPromise
+
+// Function to connect to database and return db instance
+export async function connectToDatabase() {
+  const client = await clientPromise
+  const db = client.db(process.env.MONGODB_DB || "auctionhub")
+  return { client, db }
+}

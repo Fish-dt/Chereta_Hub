@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb"
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
+    const token = request.cookies.get("auth-token")?.value
     if (!token) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
@@ -56,11 +56,18 @@ export async function POST(request: NextRequest) {
       .collection("bids")
       .findOne({ auctionId: new ObjectId(auctionId) }, { sort: { bidAmount: -1 } })
 
+    // Get user details to get firstName and lastName
+    const { getUserById } = await import("@/lib/auth")
+    const user = await getUserById(decoded.userId)
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
     // Create new bid
     const bidData = {
       auctionId: new ObjectId(auctionId),
       bidderId: decoded.userId,
-      bidderName: `${decoded.firstName} ${decoded.lastName}`,
+      bidderName: `${user.firstName} ${user.lastName}`,
       bidAmount: Number.parseFloat(bidAmount),
       timestamp: new Date(),
       isWinning: true, // This will be the highest bid
@@ -100,7 +107,7 @@ export async function POST(request: NextRequest) {
     await db.collection("notifications").insertOne({
       type: "new_bid",
       title: "New bid on your auction!",
-      message: `${decoded.firstName} ${decoded.lastName} placed a bid of $${bidAmount} on "${auction.title}"`,
+      message: `${user.firstName} ${user.lastName} placed a bid of $${bidAmount} on "${auction.title}"`,
       recipientId: auction.sellerId,
       auctionId: new ObjectId(auctionId),
       isRead: false,

@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
+    const token = request.cookies.get("auth-token")?.value
     if (!token) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
+    const token = request.cookies.get("auth-token")?.value
     if (!token) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
@@ -85,11 +85,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 })
     }
 
+    // Get user details to get firstName and lastName
+    const { getUserById } = await import("@/lib/auth")
+    const user = await getUserById(decoded.userId)
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
     // Create message
     const messageData = {
       conversationId: new ObjectId(conversationId),
       senderId: decoded.userId,
-      senderName: `${decoded.firstName} ${decoded.lastName}`,
+      senderName: `${user.firstName} ${user.lastName}`,
       message: message.trim(),
       timestamp: new Date(),
       isRead: false,

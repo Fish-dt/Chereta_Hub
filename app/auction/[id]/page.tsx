@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,83 +10,194 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Clock, Eye, Heart, Share2, Flag, User, Star, Gavel, Shield } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Clock, Eye, Heart, Share2, Flag, User, Star, Gavel, Shield, Loader2 } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { useLanguage } from "@/contexts/language-context"
 
-// Mock auction data
-const mockAuction = {
-  id: "1",
-  title: "Vintage Rolex Submariner 1960s",
-  description:
-    "Rare 1960s Rolex Submariner in excellent condition. This timepiece has been carefully maintained and comes with original box and papers. A true collector's item with historical significance.",
-  currentBid: 15000,
-  startingBid: 8000,
-  buyNowPrice: 25000,
-  endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-  images: [
-    "/placeholder.svg?height=500&width=500",
-    "/placeholder.svg?height=500&width=500",
-    "/placeholder.svg?height=500&width=500",
-  ],
-  category: "Jewelry & Watches",
-  condition: "Excellent",
-  bidCount: 23,
-  watchers: 156,
+interface Auction {
+  _id: string
+  title: string
+  description: string
+  currentBid: number
+  startingBid: number
+  endTime: string
+  images: string[]
+  category: string
+  condition: string
+  bidCount: number
+  watchers: number
+  status: string
   seller: {
-    name: "WatchCollector",
-    rating: 4.9,
-    totalSales: 127,
-    memberSince: "2019",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  specifications: {
-    Brand: "Rolex",
-    Model: "Submariner",
-    Year: "1960s",
-    "Case Material": "Stainless Steel",
-    Movement: "Automatic",
-    "Water Resistance": "200m",
-  },
-  bidHistory: [
-    { bidder: "User***23", amount: 15000, time: "2 minutes ago" },
-    { bidder: "Collector***89", amount: 14500, time: "15 minutes ago" },
-    { bidder: "Watch***45", amount: 14000, time: "1 hour ago" },
-  ],
+    _id: string
+    firstName: string
+    lastName: string
+    avatar?: string
+    rating: number
+    totalSales: number
+    memberSince: string
+  }
+  specifications?: Record<string, string>
+}
+
+interface Bid {
+  _id: string
+  bidderName: string
+  bidAmount: number
+  timestamp: string
 }
 
 export default function AuctionDetailPage() {
   const params = useParams()
+  const router = useRouter()
+  const { data: session } = useSession()
+  const { t, language } = useLanguage()
+
+  const [auction, setAuction] = useState<Auction | null>(null)
+  const [bids, setBids] = useState<Bid[]>([])
   const [selectedImage, setSelectedImage] = useState(0)
   const [bidAmount, setBidAmount] = useState("")
   const [timeRemaining, setTimeRemaining] = useState("")
   const [isWatching, setIsWatching] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [bidLoading, setBidLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [bidError, setBidError] = useState("")
+  const [bidSuccess, setBidSuccess] = useState("")
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime()
-      const endTime = mockAuction.endTime.getTime()
-      const distance = endTime - now
+    if (params.id) {
+      fetchAuction()
+      fetchBids()
+    }
+  }, [params.id])
 
-      if (distance > 0) {
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24))
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+  useEffect(() => {
+    if (auction) {
+      const timer = setInterval(() => {
+        const now = new Date().getTime()
+        const endTime = new Date(auction.endTime).getTime()
+        const distance = endTime - now
 
-        setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`)
+        if (distance > 0) {
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24))
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+
+          setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`)
+        } else {
+          setTimeRemaining("Auction ended")
+        }
+      }, 1000)
+
+      return () => clearInterval(timer)
+    }
+  }, [auction])
+
+  const fetchAuction = async () => {
+    try {
+      const response = await fetch(`/api/auctions/${params.id}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setAuction(data.auction)
       } else {
-        setTimeRemaining("Auction ended")
+        setError(data.error || "Failed to fetch auction")
       }
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
-
-  const handlePlaceBid = () => {
-    // Handle bid placement logic
-    console.log("Placing bid:", bidAmount)
+    } catch (error) {
+      setError("Network error")
+      console.error("Error fetching auction:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const minBidAmount = mockAuction.currentBid + 100
+  const fetchBids = async () => {
+    try {
+      const response = await fetch(`/api/bids?auctionId=${params.id}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setBids(data.bids || [])
+      }
+    } catch (error) {
+      console.error("Error fetching bids:", error)
+    }
+  }
+
+  const handlePlaceBid = async () => {
+    if (!session) {
+      router.push("/auth/login")
+      return
+    }
+
+    if (!bidAmount || Number.parseFloat(bidAmount) <= auction!.currentBid) {
+      setBidError(`Bid must be higher than current bid of $${auction!.currentBid}`)
+      return
+    }
+
+    setBidLoading(true)
+    setBidError("")
+    setBidSuccess("")
+
+    try {
+      const response = await fetch("/api/bids", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionId: params.id,
+          bidAmount: Number.parseFloat(bidAmount),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setBidSuccess("Bid placed successfully!")
+        setBidAmount("")
+        // Refresh auction and bids
+        fetchAuction()
+        fetchBids()
+      } else {
+        setBidError(data.error || "Failed to place bid")
+      }
+    } catch (error) {
+      setBidError("Network error. Please try again.")
+    } finally {
+      setBidLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !auction) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error || "Auction not found"}</p>
+          <Button onClick={() => router.back()}>Go Back</Button>
+        </div>
+      </div>
+    )
+  }
+
+  const minBidAmount = auction.currentBid + 1
+  const isAuctionEnded = new Date() > new Date(auction.endTime)
+  const isOwner = session && session._id === auction.seller._id
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -95,38 +206,42 @@ export default function AuctionDetailPage() {
         <div className="space-y-4">
           <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
             <Image
-              src={mockAuction.images[selectedImage] || "/placeholder.svg"}
-              alt={mockAuction.title}
+              src={auction.images[selectedImage] || "/placeholder.svg?height=500&width=500"}
+              alt={auction.title}
               fill
               className="object-cover"
             />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {mockAuction.images.map((image, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedImage(index)}
-                className={`aspect-square relative overflow-hidden rounded border-2 ${
-                  selectedImage === index ? "border-blue-500" : "border-gray-200"
-                }`}
-              >
-                <Image
-                  src={image || "/placeholder.svg"}
-                  alt={`${mockAuction.title} ${index + 1}`}
-                  fill
-                  className="object-cover"
-                />
-              </button>
-            ))}
-          </div>
+          {auction.images.length > 1 && (
+            <div className="grid grid-cols-4 gap-2">
+              {auction.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={`aspect-square relative overflow-hidden rounded border-2 ${
+                    selectedImage === index ? "border-blue-500" : "border-gray-200"
+                  }`}
+                >
+                  <Image
+                    src={image || "/placeholder.svg?height=100&width=100"}
+                    alt={`${auction.title} ${index + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Auction Info */}
         <div className="space-y-6">
           <div>
-            <Badge className="mb-2">{mockAuction.category}</Badge>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{mockAuction.title}</h1>
-            <p className="text-gray-600">{mockAuction.description}</p>
+            <Badge className="mb-2">{auction.category}</Badge>
+            <h1 className={`text-3xl font-bold text-gray-900 mb-2 ${language === "am" ? "font-amharic" : ""}`}>
+              {auction.title}
+            </h1>
+            <p className={`text-gray-600 ${language === "am" ? "font-amharic" : ""}`}>{auction.description}</p>
           </div>
 
           {/* Current Bid */}
@@ -134,23 +249,22 @@ export default function AuctionDetailPage() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-sm text-gray-500">Current Bid</p>
-                  <p className="text-3xl font-bold text-green-600">${mockAuction.currentBid.toLocaleString()}</p>
+                  <p className={`text-sm text-gray-500 ${language === "am" ? "font-amharic" : ""}`}>
+                    {t("auction.currentBid")}
+                  </p>
+                  <p className="text-3xl font-bold text-green-600">${auction.currentBid.toLocaleString()}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">Buy It Now</p>
-                  <p className="text-xl font-semibold text-blue-600">${mockAuction.buyNowPrice.toLocaleString()}</p>
-                </div>
+
               </div>
 
               <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                 <div className="flex items-center gap-1">
                   <Gavel className="h-4 w-4" />
-                  {mockAuction.bidCount} bids
+                  {auction.bidCount} {t("auction.bids")}
                 </div>
                 <div className="flex items-center gap-1">
                   <Eye className="h-4 w-4" />
-                  {mockAuction.watchers} watching
+                  {auction.watchers} watching
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
@@ -159,23 +273,56 @@ export default function AuctionDetailPage() {
               </div>
 
               {/* Bidding */}
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder={`Min bid: $${minBidAmount.toLocaleString()}`}
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button onClick={handlePlaceBid} className="px-8">
-                    Place Bid
-                  </Button>
+              {!isAuctionEnded && !isOwner && (
+                <div className="space-y-3">
+                  {bidError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{bidError}</AlertDescription>
+                    </Alert>
+                  )}
+                  {bidSuccess && (
+                    <Alert>
+                      <AlertDescription>{bidSuccess}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder={`Min bid: $${minBidAmount.toLocaleString()}`}
+                      value={bidAmount}
+                      onChange={(e) => setBidAmount(e.target.value)}
+                      className="flex-1"
+                      disabled={bidLoading}
+                    />
+                    <Button onClick={handlePlaceBid} disabled={bidLoading} className="px-8">
+                      {bidLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Placing...
+                        </>
+                      ) : (
+                        t("auction.placeBid")
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <Button variant="outline" className="w-full bg-transparent" size="lg">
-                  Buy It Now - ${mockAuction.buyNowPrice.toLocaleString()}
-                </Button>
-              </div>
+              )}
+
+              {isAuctionEnded && (
+                <div className="text-center py-4">
+                  <Badge variant="destructive" className="text-lg px-4 py-2">
+                    {t("auction.ended")}
+                  </Badge>
+                </div>
+              )}
+
+              {isOwner && (
+                <div className="text-center py-4">
+                  <Badge variant="secondary" className="text-lg px-4 py-2">
+                    This is your auction
+                  </Badge>
+                </div>
+              )}
 
               <div className="flex gap-2 mt-4">
                 <Button
@@ -204,22 +351,24 @@ export default function AuctionDetailPage() {
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <Avatar>
-                  <AvatarImage src={mockAuction.seller.avatar || "/placeholder.svg"} />
+                  <AvatarImage src={auction.seller.avatar || "/placeholder.svg?height=40&width=40"} />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="font-semibold">{mockAuction.seller.name}</h3>
+                  <h3 className={`font-semibold ${language === "am" ? "font-amharic" : ""}`}>
+                    {auction.seller.firstName} {auction.seller.lastName}
+                  </h3>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      {mockAuction.seller.rating}
+                      {auction.seller.rating}
                     </div>
                     <span>•</span>
-                    <span>{mockAuction.seller.totalSales} sales</span>
+                    <span>{auction.seller.totalSales} sales</span>
                     <span>•</span>
-                    <span>Member since {mockAuction.seller.memberSince}</span>
+                    <span>Member since {auction.seller.memberSince}</span>
                   </div>
                 </div>
                 <Button variant="outline" size="sm">
@@ -233,9 +382,8 @@ export default function AuctionDetailPage() {
 
       {/* Detailed Information */}
       <Tabs defaultValue="description" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="description">Description</TabsTrigger>
-          <TabsTrigger value="specifications">Specifications</TabsTrigger>
           <TabsTrigger value="bidding">Bid History</TabsTrigger>
           <TabsTrigger value="shipping">Shipping</TabsTrigger>
         </TabsList>
@@ -243,35 +391,24 @@ export default function AuctionDetailPage() {
         <TabsContent value="description" className="mt-6">
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Item Description</h3>
+              <h3 className={`text-lg font-semibold mb-4 ${language === "am" ? "font-amharic" : ""}`}>
+                Item Description
+              </h3>
               <div className="prose max-w-none">
-                <p>{mockAuction.description}</p>
-                <p className="mt-4">
-                  This exceptional timepiece represents the pinnacle of Swiss watchmaking from the 1960s. The Rolex
-                  Submariner has been meticulously maintained and serviced by certified technicians. All original
-                  components are intact, including the iconic rotating bezel and luminous markers.
-                </p>
-                <p className="mt-4">
-                  Condition notes: Minor surface scratches consistent with age, crystal is original and clear, movement
-                  keeps excellent time within COSC standards. This watch comes with original box, papers, and a
-                  certificate of authenticity.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="specifications" className="mt-6">
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Specifications</h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                {Object.entries(mockAuction.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-2 border-b">
-                    <span className="font-medium">{key}:</span>
-                    <span className="text-gray-600">{value}</span>
+                <p className={language === "am" ? "font-amharic" : ""}>{auction.description}</p>
+                {auction.specifications && (
+                  <div className="mt-6">
+                    <h4 className={`font-semibold mb-3 ${language === "am" ? "font-amharic" : ""}`}>Specifications</h4>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {Object.entries(auction.specifications).map(([key, value]) => (
+                        <div key={key} className="flex justify-between py-2 border-b">
+                          <span className="font-medium">{key}:</span>
+                          <span className="text-gray-600">{value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -280,17 +417,23 @@ export default function AuctionDetailPage() {
         <TabsContent value="bidding" className="mt-6">
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Bid History</h3>
+              <h3 className={`text-lg font-semibold mb-4 ${language === "am" ? "font-amharic" : ""}`}>Bid History</h3>
               <div className="space-y-3">
-                {mockAuction.bidHistory.map((bid, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 border-b">
-                    <div>
-                      <span className="font-medium">{bid.bidder}</span>
-                      <span className="text-sm text-gray-500 ml-2">{bid.time}</span>
+                {bids.length > 0 ? (
+                  bids.map((bid, index) => (
+                    <div key={bid._id} className="flex justify-between items-center py-2 border-b">
+                      <div>
+                        <span className="font-medium">{bid.bidderName}</span>
+                        <span className="text-sm text-gray-500 ml-2">{new Date(bid.timestamp).toLocaleString()}</span>
+                      </div>
+                      <span className="font-semibold text-green-600">${bid.bidAmount.toLocaleString()}</span>
                     </div>
-                    <span className="font-semibold text-green-600">${bid.amount.toLocaleString()}</span>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className={`text-gray-500 text-center py-4 ${language === "am" ? "font-amharic" : ""}`}>
+                    No bids yet. Be the first to bid!
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -299,10 +442,12 @@ export default function AuctionDetailPage() {
         <TabsContent value="shipping" className="mt-6">
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Shipping & Returns</h3>
+              <h3 className={`text-lg font-semibold mb-4 ${language === "am" ? "font-amharic" : ""}`}>
+                Shipping & Returns
+              </h3>
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">Shipping Options</h4>
+                  <h4 className={`font-medium mb-2 ${language === "am" ? "font-amharic" : ""}`}>Shipping Options</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Standard Shipping (5-7 days)</span>
@@ -320,15 +465,15 @@ export default function AuctionDetailPage() {
                 </div>
                 <Separator />
                 <div>
-                  <h4 className="font-medium mb-2">Return Policy</h4>
-                  <p className="text-sm text-gray-600">
+                  <h4 className={`font-medium mb-2 ${language === "am" ? "font-amharic" : ""}`}>Return Policy</h4>
+                  <p className={`text-sm text-gray-600 ${language === "am" ? "font-amharic" : ""}`}>
                     30-day return policy. Item must be returned in original condition. Buyer pays return shipping unless
                     item is not as described.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-green-600">
                   <Shield className="h-4 w-4" />
-                  <span>Protected by AuctionHub Buyer Protection</span>
+                  <span>Protected by CheretaHub Buyer Protection</span>
                 </div>
               </div>
             </CardContent>

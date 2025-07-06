@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const token = request.cookies.get("token")?.value
+    const token = request.cookies.get("auth-token")?.value
     if (!token) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }

@@ -1,88 +1,156 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Clock, Eye, Gavel, Heart } from "lucide-react"
-import Image from "next/image"
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Heart, Clock, Users } from "lucide-react"
+import { useLanguage } from "@/contexts/language-context"
 
 interface AuctionCardProps {
   auction: {
-    id: string
+    _id: string
     title: string
     description: string
-    currentBid: number
     startingBid: number
-    endTime: Date
-    image: string
+    currentBid: number
+    endTime: string
+    images?: string[]
     category: string
+    seller?: {
+      firstName: string
+      lastName: string
+    }
     bidCount: number
-    watchers: number
-    seller: string
+    status: string
   }
 }
 
 export function AuctionCard({ auction }: AuctionCardProps) {
-  const timeRemaining = Math.max(0, auction.endTime.getTime() - Date.now())
-  const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60))
+  const [timeLeft, setTimeLeft] = useState("")
+  const [isWatchlisted, setIsWatchlisted] = useState(false)
+  const { t, language } = useLanguage()
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date().getTime()
+      const endTime = new Date(auction.endTime).getTime()
+      const difference = endTime - now
+
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
+
+        if (days > 0) {
+          setTimeLeft(`${days}d ${hours}h`)
+        } else if (hours > 0) {
+          setTimeLeft(`${hours}h ${minutes}m`)
+        } else {
+          setTimeLeft(`${minutes}m`)
+        }
+      } else {
+        setTimeLeft("Ended")
+      }
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [auction.endTime])
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  const toggleWatchlist = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // TODO: Implement watchlist functionality
+    setIsWatchlisted(!isWatchlisted)
+  }
+
+  // Safe image access with fallback
+  const imageUrl =
+    auction.images && auction.images.length > 0 ? auction.images[0] : "/placeholder.svg?height=300&width=300"
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-shadow group">
-      <div className="relative">
-        <Image
-          src={auction.image || "/placeholder.svg"}
-          alt={auction.title}
-          width={400}
-          height={300}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <Badge className="absolute top-4 left-4 bg-blue-600">{auction.category}</Badge>
-        <div className="absolute top-4 right-4 flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-black/70 text-white px-2 py-1 rounded text-sm">
-            <Eye className="h-3 w-3" />
-            {auction.watchers}
+    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
+      <Link href={`/auction/${auction._id}`}>
+        <div className="relative aspect-square overflow-hidden">
+          <Image
+            src={imageUrl || "/placeholder.svg"}
+            alt={auction.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          <div className="absolute top-2 left-2">
+            <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
+              {auction.category}
+            </Badge>
           </div>
-          <Button size="icon" variant="ghost" className="bg-black/70 hover:bg-black/80 text-white h-8 w-8">
-            <Heart className="h-4 w-4" />
+          <div className="absolute top-2 right-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background"
+              onClick={toggleWatchlist}
+            >
+              <Heart className={`h-4 w-4 ${isWatchlisted ? "fill-red-500 text-red-500" : ""}`} />
+            </Button>
+          </div>
+          {auction.status === "ended" && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <Badge variant="destructive" className="text-lg px-4 py-2">
+                Ended
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        <CardContent className="p-4">
+          <h3 className={`font-semibold text-lg mb-2 line-clamp-2 ${language === "am" ? "font-amharic" : ""}`}>
+            {auction.title}
+          </h3>
+          <p className={`text-muted-foreground text-sm mb-3 line-clamp-2 ${language === "am" ? "font-amharic" : ""}`}>
+            {auction.description}
+          </p>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className={`text-sm text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
+                {t("auction.currentBid")}
+              </span>
+              <span className="font-bold text-lg text-primary">{formatCurrency(auction.currentBid)}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Users className="h-4 w-4" />
+                <span>
+                  {auction.bidCount} {t("auction.bids")}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>{timeLeft}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="p-4 pt-0">
+          <Button className={`w-full ${language === "am" ? "font-amharic" : ""}`} disabled={auction.status === "ended"}>
+            {auction.status === "ended" ? t("auction.ended") : t("auction.placeBid")}
           </Button>
-        </div>
-      </div>
-
-      <CardHeader>
-        <Link href={`/auction/${auction.id}`}>
-          <h3 className="text-xl font-semibold line-clamp-1 hover:text-blue-600 transition-colors">{auction.title}</h3>
-        </Link>
-        <p className="text-gray-600 text-sm line-clamp-2">{auction.description}</p>
-        <p className="text-sm text-gray-500">by {auction.seller}</p>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-sm text-gray-500">Current Bid</p>
-            <p className="text-2xl font-bold text-green-600">${auction.currentBid.toLocaleString()}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Bids</p>
-            <p className="text-lg font-semibold">{auction.bidCount}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Clock className="h-4 w-4" />
-          <span>{timeRemaining > 0 ? `${days}d ${hours}h ${minutes}m remaining` : "Auction ended"}</span>
-        </div>
-
-        <div className="flex gap-2">
-          <Button asChild className="flex-1">
-            <Link href={`/auction/${auction.id}`}>
-              <Gavel className="h-4 w-4 mr-2" />
-              {timeRemaining > 0 ? "Place Bid" : "View Results"}
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
+        </CardFooter>
+      </Link>
     </Card>
   )
 }

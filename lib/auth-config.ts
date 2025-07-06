@@ -1,22 +1,39 @@
 import type { NextAuthOptions } from "next-auth"
+import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import clientPromise from "./mongodb"
+import { compare } from "bcryptjs"
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-        },
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials) return null;
+        const client = await clientPromise
+        const db = client.db("auctionhub")
+        const user = await db.collection("users").findOne({ email: credentials.email })
+        if (!user) return null
+        const isValid = await compare(credentials.password, user.password)
+        if (!isValid) return null
+        return {
+          id: user._id.toString(),
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          image: user.avatar || null,
+        }
       },
     }),
+    // GoogleProvider({ ... }) // Uncomment and configure when ready for Google login
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -63,10 +80,10 @@ export const authOptions: NextAuthOptions = {
           const user = await db.collection("users").findOne({ email: session.user.email })
 
           if (user) {
-            session.user.id = user._id.toString()
-            session.user.role = user.role
-            session.user.firstName = user.firstName
-            session.user.lastName = user.lastName
+            (session.user as any).id = user._id.toString()
+            ;(session.user as any).role = user.role
+            ;(session.user as any).firstName = user.firstName
+            ;(session.user as any).lastName = user.lastName
           }
         } catch (error) {
           console.error("Error fetching user in session:", error)

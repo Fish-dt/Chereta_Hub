@@ -4,7 +4,7 @@ import { verifyToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
+    const token = request.cookies.get("auth-token")?.value
     if (!token) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
@@ -14,6 +14,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
+    // Get user details to get firstName and lastName
+    const { getUserById } = await import("@/lib/auth")
+    const user = await getUserById(decoded.userId)
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
     const formData = await request.formData()
 
     const auctionData = {
@@ -21,16 +28,15 @@ export async function POST(request: NextRequest) {
       description: formData.get("description") as string,
       category: formData.get("category") as string,
       startingBid: Number.parseFloat(formData.get("startingBid") as string),
-      reservePrice: formData.get("reservePrice") ? Number.parseFloat(formData.get("reservePrice") as string) : null,
       condition: formData.get("condition") as string,
       location: formData.get("location") as string,
       endTime: new Date(formData.get("endTime") as string),
       sellerId: decoded.userId,
-      sellerName: `${decoded.firstName} ${decoded.lastName}`,
+      sellerName: `${user.firstName} ${user.lastName}`,
       currentBid: Number.parseFloat(formData.get("startingBid") as string),
       bidCount: 0,
       status: "pending_review", // New status for admin review
-      images: [], // Will be populated after image processing
+      images: [] as string[], // Will be populated after image processing
       createdAt: new Date(),
       updatedAt: new Date(),
     }

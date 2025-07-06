@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -7,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendingUp, Gavel, Eye, DollarSign, Clock, Plus, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { useSession } from "next-auth/react"
 
 // Mock data
 const userStats = {
@@ -70,6 +73,33 @@ const sellingItems = [
 ]
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === "loading") return
+    if (!session) {
+      router.push("/auth/login?callbackUrl=/dashboard")
+    }
+  }, [session, status, router])
+
+  if (status === "loading") {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return null // Will redirect
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">

@@ -1,63 +1,55 @@
 import { type NextRequest, NextResponse } from "next/server"
-import clientPromise from "@/lib/mongodb"
+import { connectToDatabase } from "@/lib/mongodb"
 
 export async function GET(request: NextRequest) {
   try {
-    const client = await clientPromise
-    const db = client.db("auctionhub")
-
     const { searchParams } = new URL(request.url)
-    const category = searchParams.get("category")
-    const search = searchParams.get("search")
-    const sort = searchParams.get("sort") || "ending-soon"
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Number.parseInt(searchParams.get("limit") || "12")
+    const category = searchParams.get("category")
+    const search = searchParams.get("search")
+    const status = searchParams.get("status") || "active"
+
+    const { db } = await connectToDatabase()
 
     // Build query
-    const query: any = { status: "active" }
+    const query: any = { status }
 
-    if (category) {
+    if (category && category !== "all") {
       query.category = category
     }
 
     if (search) {
-      query.$text = { $search: search }
+      query.$or = [{ title: { $regex: search, $options: "i" } }, { description: { $regex: search, $options: "i" } }]
     }
 
-    // Build sort
-    let sortQuery: any = {}
-    switch (sort) {
-      case "ending-soon":
-        sortQuery = { endTime: 1 }
-        break
-      case "newly-listed":
-        sortQuery = { createdAt: -1 }
-        break
-      case "price-low":
-        sortQuery = { currentBid: 1 }
-        break
-      case "price-high":
-        sortQuery = { currentBid: -1 }
-        break
-      case "most-bids":
-        sortQuery = { bidCount: -1 }
-        break
-      default:
-        sortQuery = { endTime: 1 }
-    }
+    // Get total count
+    const total = await db.collection("auctions").countDocuments(query)
 
+    // Get auctions with pagination
     const auctions = await db
       .collection("auctions")
       .find(query)
-      .sort(sortQuery)
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .toArray()
 
-    const total = await db.collection("auctions").countDocuments(query)
+    // Add seller information
+    const auctionsWithSeller = await Promise.all(
+      auctions.map(async (auction) => {
+        const seller = await db
+          .collection("users")
+          .findOne({ _id: auction.sellerId }, { projection: { firstName: 1, lastName: 1, avatar: 1 } })
+        return {
+          ...auction,
+          seller: seller || { firstName: "Unknown", lastName: "User" },
+        }
+      }),
+    )
 
     return NextResponse.json({
-      auctions,
+      auctions: auctionsWithSeller,
       pagination: {
         page,
         limit,
@@ -67,14 +59,13 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error fetching auctions:", error)
-    return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const client = await clientPromise
-    const db = client.db("auctionhub")
+    const { db } = await connectToDatabase()
 
     const body = await request.json()
 

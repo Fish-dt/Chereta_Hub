@@ -1,48 +1,92 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AuctionCard } from "@/components/auction-card"
 import { AuctionFilters } from "@/components/auction-filters"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter } from "lucide-react"
+import { useLanguage } from "@/contexts/language-context"
 
-// Mock data - replace with actual API call
-const mockAuctions = [
-  {
-    id: "1",
-    title: "Vintage Rolex Submariner",
-    description: "Rare 1960s Rolex Submariner in excellent condition",
-    currentBid: 15000,
-    startingBid: 8000,
-    endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    image: "/placeholder.svg?height=300&width=400",
-    category: "Jewelry",
-    bidCount: 23,
-    watchers: 156,
-    seller: "WatchCollector",
-  },
-  {
-    id: "2",
-    title: "Original Picasso Sketch",
-    description: "Authenticated original sketch by Pablo Picasso, 1952",
-    currentBid: 45000,
-    startingBid: 25000,
-    endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-    image: "/placeholder.svg?height=300&width=400",
-    category: "Art",
-    bidCount: 67,
-    watchers: 234,
-    seller: "ArtDealer",
-  },
-  // Add more mock auctions...
-]
+interface Auction {
+  _id: string
+  title: string
+  description: string
+  startingBid: number
+  currentBid: number
+  endTime: string
+  images?: string[]
+  category: string
+  seller?: {
+    firstName: string
+    lastName: string
+  }
+  bidCount: number
+  status: string
+}
 
 export default function AuctionsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("ending-soon")
+  const [auctions, setAuctions] = useState<Auction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const { t, language } = useLanguage()
+
+  useEffect(() => {
+    fetchAuctions()
+  }, [searchQuery, sortBy])
+
+  const fetchAuctions = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        search: searchQuery,
+        sort: sortBy,
+        status: "active",
+      })
+
+      const response = await fetch(`/api/auctions?${params}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setAuctions(data.auctions || [])
+      } else {
+        setError(data.error || "Failed to fetch auctions")
+      }
+    } catch (error) {
+      setError("Network error")
+      console.error("Error fetching auctions:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className={language === "am" ? "font-amharic" : ""}>{t("common.loading")}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchAuctions}>Try Again</Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -57,8 +101,12 @@ export default function AuctionsPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">All Auctions</h1>
-              <p className="text-gray-600">Showing 1,234 active auctions</p>
+              <h1 className={`text-3xl font-bold text-gray-900 ${language === "am" ? "font-amharic" : ""}`}>
+                {t("nav.auctions")}
+              </h1>
+              <p className={`text-gray-600 ${language === "am" ? "font-amharic" : ""}`}>
+                Showing {auctions.length} active auctions
+              </p>
             </div>
 
             <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="lg:hidden">
@@ -93,18 +141,28 @@ export default function AuctionsPage() {
           </div>
 
           {/* Auction Grid */}
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {mockAuctions.map((auction) => (
-              <AuctionCard key={auction.id} auction={auction} />
-            ))}
-          </div>
+          {auctions.length > 0 ? (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {auctions.map((auction) => (
+                <AuctionCard key={auction._id} auction={auction} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className={`text-gray-500 text-lg ${language === "am" ? "font-amharic" : ""}`}>
+                No auctions found. Try adjusting your search criteria.
+              </p>
+            </div>
+          )}
 
           {/* Load More */}
-          <div className="text-center mt-12">
-            <Button size="lg" variant="outline">
-              Load More Auctions
-            </Button>
-          </div>
+          {auctions.length > 0 && (
+            <div className="text-center mt-12">
+              <Button size="lg" variant="outline">
+                Load More Auctions
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

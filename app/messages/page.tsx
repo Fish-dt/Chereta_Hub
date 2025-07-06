@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MessageCircle, Send, User } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
+import { useSession } from "next-auth/react"
 import { useLanguage } from "@/contexts/language-context"
 import { format } from "date-fns"
 
@@ -35,7 +35,7 @@ interface Message {
 }
 
 export default function MessagesPage() {
-  const { user } = useAuth()
+  const { data: session } = useSession();
   const { t, language } = useLanguage()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
@@ -44,10 +44,10 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (user) {
+    if (session) {
       fetchConversations()
     }
-  }, [user])
+  }, [session])
 
   useEffect(() => {
     if (selectedConversation) {
@@ -103,7 +103,7 @@ export default function MessagesPage() {
     }
   }
 
-  if (!user) {
+  if (!session) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
@@ -189,11 +189,11 @@ export default function MessagesPage() {
                   {messages.map((message) => (
                     <div
                       key={message._id}
-                      className={`mb-4 flex ${message.senderId === user.id ? "justify-end" : "justify-start"}`}
+                      className={`mb-4 flex ${message.senderId === session.user.id ? "justify-end" : "justify-start"}`}
                     >
                       <div
                         className={`max-w-[70%] rounded-lg p-3 ${
-                          message.senderId === user.id
+                          message.senderId === session.user.id
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-muted-foreground"
                         }`}
