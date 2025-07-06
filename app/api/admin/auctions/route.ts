@@ -1,10 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/middleware"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth-config"
 import clientPromise from "@/lib/mongodb"
 
 export async function GET(request: NextRequest) {
-  const authResult = await requireAuth(request, "moderator")
-  if (authResult instanceof NextResponse) return authResult
+  // Use NextAuth session
+  const session = await getServerSession(authOptions)
+  if (!session || ((session.user as any).role !== "admin" && (session.user as any).role !== "moderator")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+  }
 
   try {
     const client = await clientPromise

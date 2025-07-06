@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
 import { verifyToken } from "@/lib/auth"
+import fs from "fs"
+import path from "path"
+
+export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,14 +62,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "End time must be in the future" }, { status: 400 })
     }
 
-    // Process images (simplified - in production, upload to cloud storage)
+    // Process images and save to public/auctions/
     const imageUrls: string[] = []
+    const uploadDir = path.join(process.cwd(), "public", "auctions")
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true })
+    }
     for (let i = 0; i < 10; i++) {
       const image = formData.get(`image${i}`) as File
-      if (image) {
-        // In production, upload to cloud storage and get URL
-        // For now, we'll use placeholder URLs
-        imageUrls.push(`/placeholder.svg?height=400&width=400&text=Image${i + 1}`)
+      if (image && image.size > 0) {
+        const arrayBuffer = await image.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const ext = image.type.split("/").pop() || "jpg"
+        const fileName = `auction_${Date.now()}_${i}.${ext}`
+        const filePath = path.join(uploadDir, fileName)
+        fs.writeFileSync(filePath, buffer)
+        imageUrls.push(`/auctions/${fileName}`)
       }
     }
 

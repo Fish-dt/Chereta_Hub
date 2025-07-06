@@ -56,7 +56,7 @@ interface Auction {
   currentBid: number
   startingBid: number
   endTime: string
-  status: "active" | "ended" | "cancelled" | "pending"
+  status: "active" | "ended" | "cancelled" | "pending" | "pending_review"
   bidCount: number
   sellerName: string
   createdAt: string
@@ -337,9 +337,10 @@ export default function AdminPage() {
 
       {/* Enhanced Tabs */}
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="auctions">Auctions</TabsTrigger>
+          <TabsTrigger value="pending">Pending Review</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -539,6 +540,48 @@ export default function AdminPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pending" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Pending Auctions</CardTitle>
+                  <CardDescription>Review and approve new auctions</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {auctions.filter(a => a.status === "pending_review").length === 0 && (
+                  <div className="text-center text-muted-foreground">No auctions pending review.</div>
+                )}
+                {auctions.filter(a => a.status === "pending_review").map((auction) => (
+                  <div key={auction._id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold">{auction.title}</h3>
+                        <Badge variant="secondary">Pending Review</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{auction.category}</p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>Current: ${auction.currentBid.toLocaleString()}</span>
+                        <span>{auction.bidCount} bids</span>
+                        <span>by {auction.sellerName}</span>
+                        <span>Ends {format(new Date(auction.endTime), "MMM dd, yyyy")}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="success" onClick={() => approveAuction(auction._id)}>
+                        Approve
+                      </Button>
                     </div>
                   </div>
                 ))}
