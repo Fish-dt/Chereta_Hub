@@ -56,7 +56,7 @@ interface Auction {
   currentBid: number
   startingBid: number
   endTime: string
-  status: "active" | "ended" | "cancelled"
+  status: "active" | "ended" | "cancelled" | "pending"
   bidCount: number
   sellerName: string
   createdAt: string
@@ -191,6 +191,23 @@ export default function AdminPage() {
         setAuctions(auctions.filter((a) => a._id !== auctionId))
       } else {
         setError("Failed to delete auction")
+      }
+    } catch (error) {
+      setError("Network error")
+    }
+  }
+
+  const approveAuction = async (auctionId: string) => {
+    try {
+      const response = await fetch(`/api/admin/auctions/${auctionId}/review`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active" }),
+      })
+      if (response.ok) {
+        setAuctions(auctions.map((a) => a._id === auctionId ? { ...a, status: "active" } : a))
+      } else {
+        setError("Failed to approve auction")
       }
     } catch (error) {
       setError("Network error")
@@ -480,7 +497,7 @@ export default function AdminPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold">{auction.title}</h3>
-                        <Badge variant={auction.status === "active" ? "default" : "secondary"}>{auction.status}</Badge>
+                        <Badge variant={auction.status === "active" ? "default" : auction.status === "pending" ? "secondary" : "outline"}>{auction.status}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">{auction.category}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -490,8 +507,12 @@ export default function AdminPage() {
                         <span>Ends {format(new Date(auction.endTime), "MMM dd, yyyy")}</span>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2">
+                      {auction.status === "pending" && (
+                        <Button size="sm" variant="success" onClick={() => approveAuction(auction._id)}>
+                          Approve
+                        </Button>
+                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">

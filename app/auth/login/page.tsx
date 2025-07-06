@@ -32,8 +32,12 @@ export default function LoginPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (session) {
-      const decodedUrl = decodeURIComponent(callbackUrl)
-      router.push(decodedUrl)
+      if (session.user.role === "admin" || session.user.role === "moderator") {
+        router.push("/admin")
+      } else {
+        const decodedUrl = decodeURIComponent(callbackUrl)
+        router.push(decodedUrl)
+      }
     }
   }, [session, router, callbackUrl])
 
