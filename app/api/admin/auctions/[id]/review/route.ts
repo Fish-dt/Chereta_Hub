@@ -1,20 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
-import { verifyToken } from "@/lib/auth"
+import { requireAuth } from "@/lib/middleware"
 import { ObjectId } from "mongodb"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  const authResult = await requireAuth(request, "moderator")
+  if (authResult instanceof NextResponse) return authResult
+
   try {
-    const token = request.cookies.get("auth-token")?.value
-    if (!token) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded || (decoded.role !== "admin" && decoded.role !== "moderator")) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 })
-    }
-
     const { action, reason } = await request.json()
 
     if (!["approve", "reject"].includes(action)) {
@@ -37,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       {
         $set: {
           status: newStatus,
-          reviewedBy: decoded.userId,
+          reviewedBy: authResult.user._id,
           reviewedAt: new Date(),
           rejectionReason: action === "reject" ? reason : null,
           updatedAt: new Date(),

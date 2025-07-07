@@ -35,6 +35,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog"
 
 interface User {
   _id: string
@@ -92,6 +103,8 @@ export default function AdminPage() {
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRole, setSelectedRole] = useState("all")
+  const [selectedAuctionId, setSelectedAuctionId] = useState<string | null>(null)
+  const [showApproveDialog, setShowApproveDialog] = useState(false)
 
   useEffect(() => {
     if (session && (session.user.role === "admin" || session.user.role === "moderator")) {
@@ -212,6 +225,24 @@ export default function AdminPage() {
     } catch (error) {
       setError("Network error")
     }
+  }
+
+  const handleApproveClick = (auctionId: string) => {
+    setSelectedAuctionId(auctionId)
+    setShowApproveDialog(true)
+  }
+
+  const handleApproveConfirm = async () => {
+    if (selectedAuctionId) {
+      await approveAuction(selectedAuctionId)
+      setShowApproveDialog(false)
+      setSelectedAuctionId(null)
+    }
+  }
+
+  const handleApproveCancel = () => {
+    setShowApproveDialog(false)
+    setSelectedAuctionId(null)
   }
 
   const filteredUsers = users.filter((user) => {
@@ -482,8 +513,8 @@ export default function AdminPage() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Auction Management</CardTitle>
-                  <CardDescription>Monitor and manage all platform auctions</CardDescription>
+                  <CardTitle>All Auctions</CardTitle>
+                  <CardDescription>Manage all auctions on the platform</CardDescription>
                 </div>
                 <Button>
                   <Gavel className="h-4 w-4 mr-2" />
@@ -498,7 +529,7 @@ export default function AdminPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold">{auction.title}</h3>
-                        <Badge variant={auction.status === "active" ? "default" : auction.status === "pending" ? "secondary" : "outline"}>{auction.status}</Badge>
+                        <Badge variant={auction.status === "active" ? "default" : auction.status === "pending" || auction.status === "pending_review" ? "secondary" : "outline"}>{auction.status}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">{auction.category}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -509,8 +540,8 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {auction.status === "pending" && (
-                        <Button size="sm" variant="success" onClick={() => approveAuction(auction._id)}>
+                      {(auction.status === "pending" || auction.status === "pending_review") && (
+                        <Button size="sm" variant="success" onClick={() => handleApproveClick(auction._id)}>
                           Approve
                         </Button>
                       )}
@@ -579,7 +610,7 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="success" onClick={() => approveAuction(auction._id)}>
+                      <Button size="sm" variant="success" onClick={() => handleApproveClick(auction._id)}>
                         Approve
                       </Button>
                     </div>
@@ -683,6 +714,21 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve Auction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to approve this auction? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleApproveCancel}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleApproveConfirm}>Approve</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
