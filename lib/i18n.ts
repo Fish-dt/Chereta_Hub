@@ -101,6 +101,14 @@ export const translations = {
     "dashboard.myBids": "My Bids",
     "dashboard.watchlist": "Watchlist",
     "common.loading": "Loading...",
+
+    // Auth/Register
+    "auth.signup.title": "Create your account",
+    "auth.signup.subtitle": "Sign up to get started",
+    "auth.signup.button": "Sign Up",
+    "auth.signup.loading": "Signing up...",
+    "auth.confirm.password": "Confirm Password",
+    "auth.terms": "I agree to the terms and conditions",
   },
   am: {
     // Navigation (Amharic translations)
@@ -204,6 +212,14 @@ export const translations = {
     "dashboard.myBids": "የእኔ ጨረታዎች",
     "dashboard.watchlist": "የክትትል ዝርዝር",
     "common.loading": "በመጫን ላይ...",
+
+    // Auth/Register (Amharic)
+    "auth.signup.title": "መለያዎን ይፍጠሩ",
+    "auth.signup.subtitle": "ለመጀመር ይመዝገቡ",
+    "auth.signup.button": "ተመዝገብ",
+    "auth.signup.loading": "በመመዝገብ ላይ...",
+    "auth.confirm.password": "የይለፍ ቃል ያረጋግጡ",
+    "auth.terms": "ህጉን እና ደንቦቹን እቀበላለሁ",
   },
 }
 

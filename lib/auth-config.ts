@@ -33,7 +33,10 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
-    // GoogleProvider({ ... }) // Uncomment and configure when ready for Google login
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
