@@ -206,13 +206,13 @@ export default function AuctionDetailPage() {
         <div className="space-y-4">
           <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
             <Image
-              src={auction.images[selectedImage] || "/placeholder.svg?height=500&width=500"}
+              src={auction.images && auction.images.length > 0 ? auction.images[selectedImage] : "/placeholder.jpg"}
               alt={auction.title}
               fill
               className="object-cover"
             />
           </div>
-          {auction.images.length > 1 && (
+          {auction.images && auction.images.length > 1 && (
             <div className="grid grid-cols-4 gap-2">
               {auction.images.map((image, index) => (
                 <button
@@ -223,7 +223,7 @@ export default function AuctionDetailPage() {
                   }`}
                 >
                   <Image
-                    src={image || "/placeholder.svg?height=100&width=100"}
+                    src={image || "/placeholder.jpg"}
                     alt={`${auction.title} ${index + 1}`}
                     fill
                     className="object-cover"

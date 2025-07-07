@@ -254,23 +254,7 @@ export default function AdminPage() {
     return matchesSearch && matchesRole
   })
 
-  if (!session) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-4">Access Denied</h2>
-            <p className="text-muted-foreground mb-4">You need to sign in to access this page.</p>
-            <Button asChild>
-              <a href="/auth/login">Sign In</a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (session.user.role !== "admin" && session.user.role !== "moderator") {
+  if (!session || !(session.user as any) || ((session.user as any).role !== "admin" && (session.user as any).role !== "moderator")) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
@@ -291,13 +275,13 @@ export default function AdminPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
-          {session.user.role === "admin" ? (
+          {((session.user as any).role === "admin") ? (
             <Crown className="h-6 w-6 text-yellow-500" />
           ) : (
             <Shield className="h-6 w-6 text-blue-500" />
           )}
           <h1 className={`text-3xl font-bold text-foreground ${language === "am" ? "font-amharic" : ""}`}>
-            {session.user.role === "admin" ? "Super Admin Dashboard" : "Moderator Dashboard"}
+            {((session.user as any).role === "admin") ? "Super Admin Dashboard" : "Moderator Dashboard"}
           </h1>
         </div>
         <p className={`text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
@@ -368,10 +352,9 @@ export default function AdminPage() {
 
       {/* Enhanced Tabs */}
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="auctions">Auctions</TabsTrigger>
-          <TabsTrigger value="pending">Pending Review</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -459,7 +442,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {session.user.role === "admin" && (
+                      {((session.user as any).role === "admin") && (
                         <Select value={userData.role} onValueChange={(value) => updateUserRole(userData._id, value)}>
                           <SelectTrigger className="w-32">
                             <SelectValue />
@@ -492,7 +475,7 @@ export default function AdminPage() {
                             <Ban className="h-4 w-4 mr-2" />
                             Suspend User
                           </DropdownMenuItem>
-                          {session.user.role === "admin" && (
+                          {((session.user as any).role === "admin") && (
                             <DropdownMenuItem className="text-destructive">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete User
@@ -571,48 +554,6 @@ export default function AdminPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="pending" className="mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Pending Auctions</CardTitle>
-                  <CardDescription>Review and approve new auctions</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {auctions.filter(a => a.status === "pending_review").length === 0 && (
-                  <div className="text-center text-muted-foreground">No auctions pending review.</div>
-                )}
-                {auctions.filter(a => a.status === "pending_review").map((auction) => (
-                  <div key={auction._id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold">{auction.title}</h3>
-                        <Badge variant="secondary">Pending Review</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">{auction.category}</p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>Current: ${auction.currentBid.toLocaleString()}</span>
-                        <span>{auction.bidCount} bids</span>
-                        <span>by {auction.sellerName}</span>
-                        <span>Ends {format(new Date(auction.endTime), "MMM dd, yyyy")}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="success" onClick={() => handleApproveClick(auction._id)}>
-                        Approve
-                      </Button>
                     </div>
                   </div>
                 ))}

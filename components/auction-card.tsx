@@ -78,14 +78,14 @@ export function AuctionCard({ auction }: AuctionCardProps) {
 
   // Safe image access with fallback
   const imageUrl =
-    auction.images && auction.images.length > 0 ? auction.images[0] : "/placeholder.svg?height=300&width=300"
+    auction.images && auction.images.length > 0 ? auction.images[0] : "/placeholder.jpg"
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
       <Link href={`/auction/${auction._id}`}>
         <div className="relative aspect-square overflow-hidden">
           <Image
-            src={imageUrl || "/placeholder.svg"}
+            src={imageUrl}
             alt={auction.title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
