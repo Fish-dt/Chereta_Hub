@@ -199,9 +199,9 @@ export function Navbar() {
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">
-                          {session.user.firstName} {session.user.lastName}
+                          {(session.user as any)?.firstName} {(session.user as any)?.lastName}
                         </p>
-                        <p className="text-xs leading-none text-muted-foreground">{session.user.email}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{(session.user as any)?.email}</p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />

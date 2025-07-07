@@ -1,18 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
-import { verifyToken } from "@/lib/auth"
 import { ObjectId } from "mongodb"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth-config"
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get("auth-token")?.value
-    if (!token) {
+    const session = await getServerSession(authOptions)
+    const user = session?.user as any
+    if (!user || !user.id) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
     const { auctionId, bidAmount } = await request.json()
@@ -37,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is the seller
-    if (auction.sellerId === decoded.userId) {
+    if (auction.sellerId === user.id) {
       return NextResponse.json({ error: "You cannot bid on your own auction" }, { status: 400 })
     }
 
@@ -58,16 +55,16 @@ export async function POST(request: NextRequest) {
 
     // Get user details to get firstName and lastName
     const { getUserById } = await import("@/lib/auth")
-    const user = await getUserById(decoded.userId)
-    if (!user) {
+    const dbUser = await getUserById(user.id)
+    if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
     // Create new bid
     const bidData = {
       auctionId: new ObjectId(auctionId),
-      bidderId: decoded.userId,
-      bidderName: `${user.firstName} ${user.lastName}`,
+      bidderId: user.id,
+      bidderName: `${dbUser.firstName} ${dbUser.lastName}`,
       bidAmount: Number.parseFloat(bidAmount),
       timestamp: new Date(),
       isWinning: true, // This will be the highest bid
@@ -107,7 +104,7 @@ export async function POST(request: NextRequest) {
     await db.collection("notifications").insertOne({
       type: "new_bid",
       title: "New bid on your auction!",
-      message: `${user.firstName} ${user.lastName} placed a bid of $${bidAmount} on "${auction.title}"`,
+      message: `${dbUser.firstName} ${dbUser.lastName} placed a bid of $${bidAmount} on "${auction.title}"`,
       recipientId: auction.sellerId,
       auctionId: new ObjectId(auctionId),
       isRead: false,

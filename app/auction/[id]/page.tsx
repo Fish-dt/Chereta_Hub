@@ -197,28 +197,28 @@ export default function AuctionDetailPage() {
 
   const minBidAmount = auction.currentBid + 1
   const isAuctionEnded = new Date() > new Date(auction.endTime)
-  const isOwner = session && session._id === auction.seller._id
+  const isOwner = session && (session.user as any)?.id === auction.seller._id
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid lg:grid-cols-2 gap-8 mb-8 min-h-[420px]">
         {/* Image Gallery */}
-        <div className="space-y-4">
-          <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
+        <div className="space-y-4 flex flex-col items-center h-full justify-between">
+          <div className="relative overflow-hidden rounded-lg bg-gray-100 w-full max-w-md aspect-[4/3] mx-auto h-full flex items-center justify-center">
             <Image
               src={auction.images && auction.images.length > 0 ? auction.images[selectedImage] : "/placeholder.jpg"}
               alt={auction.title}
               fill
-              className="object-cover"
+              className="object-contain"
             />
           </div>
           {auction.images && auction.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="flex justify-center gap-2 mt-2">
               {auction.images.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`aspect-square relative overflow-hidden rounded border-2 ${
+                  className={`relative overflow-hidden rounded border-2 w-16 h-16 ${
                     selectedImage === index ? "border-blue-500" : "border-gray-200"
                   }`}
                 >
@@ -235,7 +235,7 @@ export default function AuctionDetailPage() {
         </div>
 
         {/* Auction Info */}
-        <div className="space-y-6">
+        <div className="space-y-6 h-full flex flex-col justify-between">
           <div>
             <Badge className="mb-2">{auction.category}</Badge>
             <h1 className={`text-3xl font-bold text-gray-900 mb-2 ${language === "am" ? "font-amharic" : ""}`}>
@@ -307,19 +307,18 @@ export default function AuctionDetailPage() {
                   </div>
                 </div>
               )}
+              {!isAuctionEnded && isOwner && (
+                <div className="text-center py-4">
+                  <Badge variant="secondary" className="text-lg px-4 py-2">
+                    You cannot bid on your own auction
+                  </Badge>
+                </div>
+              )}
 
               {isAuctionEnded && (
                 <div className="text-center py-4">
                   <Badge variant="destructive" className="text-lg px-4 py-2">
                     {t("auction.ended")}
-                  </Badge>
-                </div>
-              )}
-
-              {isOwner && (
-                <div className="text-center py-4">
-                  <Badge variant="secondary" className="text-lg px-4 py-2">
-                    This is your auction
                   </Badge>
                 </div>
               )}
