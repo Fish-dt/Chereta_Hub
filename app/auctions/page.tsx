@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { AuctionCard } from "@/components/auction-card"
 import { AuctionFilters } from "@/components/auction-filters"
 import { Button } from "@/components/ui/button"
@@ -34,16 +34,24 @@ export default function AuctionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const { t, language } = useLanguage()
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery)
+    }, 400)
+    return () => clearTimeout(handler)
+  }, [searchQuery])
 
   useEffect(() => {
     fetchAuctions()
-  }, [searchQuery, sortBy])
+  }, [debouncedSearch, sortBy])
 
   const fetchAuctions = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams({
-        search: searchQuery,
+        search: debouncedSearch,
         sort: sortBy,
         status: "active",
       })
@@ -142,7 +150,7 @@ export default function AuctionsPage() {
 
           {/* Auction Grid */}
           {auctions.length > 0 ? (
-            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
               {auctions.map((auction) => (
                 <AuctionCard key={auction._id} auction={auction} />
               ))}

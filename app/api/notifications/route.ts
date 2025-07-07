@@ -1,33 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
-import { verifyToken } from "@/lib/auth"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth-config"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("auth-token")?.value
-    if (!token) {
+    const session = await getServerSession(authOptions)
+    const user = session?.user as any
+    if (!user || !user.id) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
     const { db } = await connectToDatabase()
 
-    // Get notifications for the user or their role
+    // Get notifications for the user only
     const notifications = await db
       .collection("notifications")
-      .find({
-        $or: [{ recipientId: decoded.userId }, { recipientRole: decoded.role }],
-      })
+      .find({ recipientId: user.id })
       .sort({ createdAt: -1 })
       .limit(50)
       .toArray()
 
     const unreadCount = await db.collection("notifications").countDocuments({
-      $or: [{ recipientId: decoded.userId }, { recipientRole: decoded.role }],
+      recipientId: user.id,
       isRead: false,
     })
 

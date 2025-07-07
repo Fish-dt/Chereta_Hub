@@ -129,10 +129,9 @@ export function Navbar() {
             {session ? (
               <>
                 {/* Sell Button */}
-                <Button asChild size="sm" className={`hidden sm:flex ${language === "am" ? "font-amharic" : ""}`}>
+                <Button asChild variant="ghost" size="icon" aria-label={t("nav.sell") || "Sell"}>
                   <Link href="/sell">
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t("nav.sell")}
+                    <Plus className="h-5 w-5" />
                   </Link>
                 </Button>
 
@@ -189,10 +188,9 @@ export function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={session.user.avatar || "/placeholder.svg"} alt={session.user.firstName} />
+                        <AvatarImage src={(session.user as any)?.avatar || undefined} alt={(session.user as any)?.firstName || "Profile"} />
                         <AvatarFallback>
-                          {session.user.firstName?.[0]}
-                          {session.user.lastName?.[0]}
+                          <User className="h-5 w-5 text-muted-foreground" />
                         </AvatarFallback>
                       </Avatar>
                     </Button>

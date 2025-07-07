@@ -11,11 +11,20 @@ export const translations = {
     "nav.login": "Login",
     "nav.register": "Register",
     "nav.logout": "Logout",
+    "nav.categories": "Categories",
+    "nav.how.it.works": "How It Works",
+    "nav.notifications": "Notifications",
+    "nav.no.notifications": "No notifications",
+    "nav.view.all": "View All",
+    "nav.watchlist": "Watchlist",
+    "nav.settings": "Settings",
+    "nav.signin": "Sign In",
+    "nav.signup": "Sign Up",
+    "nav.search.placeholder": "Search auctions...",
 
     // Hero Section
     "hero.title": "Discover Unique Treasures",
     "hero.subtitle": "Join thousands of bidders in exciting auctions for rare and valuable items",
-    "hero.search.placeholder": "Search auctions...",
     "hero.search.button": "Search",
     "hero.get.started": "Get Started",
     "hero.browse.auctions": "Browse Auctions",
@@ -91,6 +100,7 @@ export const translations = {
     "dashboard.myAuctions": "My Auctions",
     "dashboard.myBids": "My Bids",
     "dashboard.watchlist": "Watchlist",
+    "common.loading": "Loading...",
   },
   am: {
     // Navigation (Amharic translations)
@@ -104,11 +114,20 @@ export const translations = {
     "nav.login": "ግባ",
     "nav.register": "ተመዝገብ",
     "nav.logout": "ውጣ",
+    "nav.categories": "ምድቦች",
+    "nav.how.it.works": "እንዴት እንደሚሰራ",
+    "nav.notifications": "ማሳወቂያዎች",
+    "nav.no.notifications": "ምንም ማሳወቂያዎች የሉም",
+    "nav.view.all": "ሁሉንም ይመልከቱ",
+    "nav.watchlist": "የክትትል ዝርዝር",
+    "nav.settings": "ቅንብሮች",
+    "nav.signin": "ግባ",
+    "nav.signup": "ተመዝገብ",
+    "nav.search.placeholder": "ጨረታዎችን ፈልግ...",
 
     // Hero Section (Amharic translations)
     "hero.title": "ልዩ ሀብቶችን ያግኙ",
     "hero.subtitle": "በሺዎች የሚቆጠሩ ተጫራቾች ከእርስዎ ጋር በተለያዩ ጨረታዎች ይሳተፉ",
-    "hero.search.placeholder": "ምን እየፈለጉ ነው?",
     "hero.search.button": "ፈልግ",
     "hero.get.started": "ጀምር",
     "hero.browse.auctions": "ጨረታዎችን አስሱ",
@@ -184,6 +203,7 @@ export const translations = {
     "dashboard.myAuctions": "የእኔ ጨረታዎች",
     "dashboard.myBids": "የእኔ ጨረታዎች",
     "dashboard.watchlist": "የክትትል ዝርዝር",
+    "common.loading": "በመጫን ላይ...",
   },
 }
 
