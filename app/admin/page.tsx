@@ -202,7 +202,7 @@ export default function AdminPage() {
       const response = await fetch(`/api/admin/auctions/${auctionId}/review`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "active" }),
+        body: JSON.stringify({ action: "approve" }),
       })
       if (response.ok) {
         setAuctions(auctions.map((a) => a._id === auctionId ? { ...a, status: "active" } : a))
