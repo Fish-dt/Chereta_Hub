@@ -1,11 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
-import { requireAuth } from "@/lib/middleware"
 import { ObjectId } from "mongodb"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth-config"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const authResult = await requireAuth(request, "moderator")
-  if (authResult instanceof NextResponse) return authResult
+  const session = await getServerSession(authOptions)
+  const user = session?.user as any
+  if (!user || (user.role !== "admin" && user.role !== "moderator")) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+  }
 
   try {
     const { action, reason } = await request.json()
@@ -30,7 +34,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       {
         $set: {
           status: newStatus,
-          reviewedBy: authResult.user._id,
+          reviewedBy: user.id,
           reviewedAt: new Date(),
           rejectionReason: action === "reject" ? reason : null,
           updatedAt: new Date(),
