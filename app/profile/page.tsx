@@ -59,6 +59,7 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
+    if (session === undefined) return; // Wait for session to load
     if (!session) {
       router.push("/auth/login")
       return

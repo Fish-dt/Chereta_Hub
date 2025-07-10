@@ -1,24 +1,19 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { connectToDatabase } from "@/lib/mongodb"
-import { verifyToken } from "@/lib/auth"
-import { ObjectId } from "mongodb"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth-config"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("auth-token")?.value
-    if (!token) {
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
     const { db } = await connectToDatabase()
     const profile = await db
       .collection("users")
-      .findOne({ _id: new ObjectId(decoded.userId) }, { projection: { password: 0 } })
+      .findOne({ email: session.user.email }, { projection: { password: 0 } })
 
     if (!profile) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 })
@@ -33,21 +28,15 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const token = request.cookies.get("auth-token")?.value
-    if (!token) {
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
-    }
-
     const { firstName, lastName, phone, location, bio } = await request.json()
-
     const { db } = await connectToDatabase()
     await db.collection("users").updateOne(
-      { _id: new ObjectId(decoded.userId) },
+      { email: session.user.email },
       {
         $set: {
           firstName,

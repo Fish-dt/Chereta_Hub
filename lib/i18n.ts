@@ -26,6 +26,7 @@ export const translations = {
     "hero.title": "Discover Unique Treasures",
     "hero.subtitle": "Join thousands of bidders in exciting auctions for rare and valuable items",
     "hero.search.button": "Search",
+    "hero.search.placeholder": "Search for items, categories, or sellers...",
     "hero.get.started": "Get Started",
     "hero.browse.auctions": "Browse Auctions",
     "hero.start.selling": "Start Selling",
@@ -101,6 +102,7 @@ export const translations = {
     "dashboard.myBids": "My Bids",
     "dashboard.watchlist": "Watchlist",
     "common.loading": "Loading...",
+    "common.cancel": "Cancel",
 
     // Auth/Register
     "auth.signup.title": "Create your account",
@@ -137,6 +139,7 @@ export const translations = {
     "hero.title": "ልዩ ሀብቶችን ያግኙ",
     "hero.subtitle": "በሺዎች የሚቆጠሩ ተጫራቾች ከእርስዎ ጋር በተለያዩ ጨረታዎች ይሳተፉ",
     "hero.search.button": "ፈልግ",
+    "hero.search.placeholder": "ዕቃዎችን፣ ምድቦችን ወይም ሻጮችን ፈልግ...",
     "hero.get.started": "ጀምር",
     "hero.browse.auctions": "ጨረታዎችን አስሱ",
     "hero.start.selling": "መሸጥ ጀምር",
@@ -212,6 +215,7 @@ export const translations = {
     "dashboard.myBids": "የእኔ ጨረታዎች",
     "dashboard.watchlist": "የክትትል ዝርዝር",
     "common.loading": "በመጫን ላይ...",
+    "common.cancel": "ይቅር",
 
     // Auth/Register (Amharic)
     "auth.signup.title": "መለያዎን ይፍጠሩ",
