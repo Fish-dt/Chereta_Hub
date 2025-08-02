@@ -1,7 +1,14 @@
 import { MongoClient } from "mongodb"
 
-const uri =
-  "mongodb+srv://fisseha:9IxJhEy3A0RCH0ot@cluster0.ifvdbi6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+// Load environment variables
+import dotenv from 'dotenv'
+dotenv.config()
+
+const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/auctionhub"
+
+if (!process.env.MONGODB_URI) {
+  console.warn("⚠️  MONGODB_URI not found in environment variables. Using default localhost URI.")
+}
 
 async function testConnection() {
   const client = new MongoClient(uri)
