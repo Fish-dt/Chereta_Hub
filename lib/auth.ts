@@ -30,12 +30,18 @@ export async function verifyPassword(password: string, hashedPassword: string) {
 }
 
 export function generateToken(userId: string) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET!, { expiresIn: "7d" })
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required')
+  }
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" })
 }
 
 export function verifyToken(token: string) {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
+    if (!process.env.JWT_SECRET) {
+      return null
+    }
+    return jwt.verify(token, process.env.JWT_SECRET) as { userId: string }
   } catch {
     return null
   }

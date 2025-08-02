@@ -1,10 +1,11 @@
 import { MongoClient } from "mongodb"
 
-if (!process.env.MONGODB_URI) {
+// Only throw error if we're not in build time and the URI is missing
+if (!process.env.MONGODB_URI && process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"')
 }
 
-const uri = process.env.MONGODB_URI
+const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/auctionhub"
 const options = {}
 
 let client

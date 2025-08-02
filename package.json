@@ -6,7 +6,8 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "generate-secrets": "node scripts/generate-secrets.js"
   },
   "dependencies": {
     "@auth/core": "latest",
@@ -47,6 +48,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "latest",
+    "dotenv": "^16.4.5",
     "embla-carousel-react": "8.5.1",
     "gcp-metadata": "latest",
     "input-otp": "1.4.1",

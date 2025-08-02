@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "CheretaHub - Premium Auction Platform",
   description: "Discover unique items and bid on exclusive auctions at CheretaHub",
-    generator: 'v0.dev'
+    generator: 'auction hub'
 }
 
 export default function RootLayout({
