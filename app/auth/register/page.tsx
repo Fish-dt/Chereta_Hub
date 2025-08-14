@@ -268,7 +268,23 @@ export default function RegisterPage() {
             type="button"
             variant="outline"
             className="w-full flex items-center justify-center gap-2"
-            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            onClick={async () => {
+              setIsLoading(true);
+              setError("");
+              try {
+                const result = await signIn("google", { 
+                  callbackUrl: "/dashboard",
+                  redirect: false 
+                });
+                if (result?.error) {
+                  setError("Google sign in failed. Please try again.");
+                }
+              } catch (error) {
+                setError("Google sign in failed. Please try again.");
+              } finally {
+                setIsLoading(false);
+              }
+            }}
             disabled={isLoading}
           >
             <svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">

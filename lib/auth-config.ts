@@ -7,6 +7,7 @@ import { compare } from "bcryptjs"
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
+  debug: process.env.NODE_ENV === "development",
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -37,6 +38,13 @@ export const authOptions: NextAuthOptions = {
       GoogleProvider({
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        authorization: {
+          params: {
+            prompt: "consent",
+            access_type: "offline",
+            response_type: "code"
+          }
+        }
       })
     ] : []),
   ],
@@ -85,6 +93,16 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).lastName = token.lastName;
         (session.user as any).image = token.image;
       }
+      
+      // Ensure session has all required user data
+      if (session.user && !(session.user as any).id && token) {
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).firstName = token.firstName;
+        (session.user as any).lastName = token.lastName;
+        (session.user as any).image = token.image;
+      }
+      
       return session;
     },
     async jwt({ token, user, account }) {
@@ -97,6 +115,27 @@ export const authOptions: NextAuthOptions = {
         token.lastName = u.lastName;
         token.image = u.image;
       }
+      
+      // Handle Google OAuth user data
+      if (account?.provider === "google" && user) {
+        try {
+          const client = await clientPromise;
+          const db = client.db("auctionhub");
+          const dbUser = await db.collection("users").findOne({ email: user.email });
+          
+          if (dbUser) {
+            token.id = dbUser._id.toString();
+            token.email = dbUser.email;
+            token.role = dbUser.role;
+            token.firstName = dbUser.firstName;
+            token.lastName = dbUser.lastName;
+            token.image = dbUser.avatar;
+          }
+        } catch (error) {
+          console.error("Error fetching user data in JWT callback:", error);
+        }
+      }
+      
       if (account) {
         token.accessToken = account.access_token;
       }
@@ -111,5 +150,4 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
 }
