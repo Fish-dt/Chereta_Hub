@@ -1,10 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth-config"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  // Lazy imports to prevent build-time evaluation
+  const { connectToDatabase } = await import("@/lib/mongodb")
+  const { getServerSession } = await import("next-auth/next")
+  const { authOptions } = await import("@/lib/auth-config")
+  
   const session = await getServerSession(authOptions)
   const user = session?.user as any
   if (!user || (user.role !== "admin" && user.role !== "moderator")) {

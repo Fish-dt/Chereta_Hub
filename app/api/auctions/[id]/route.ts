@@ -1,49 +1,46 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function GET(request: NextRequest, context: any) {
-  const { params } = await context;
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  // Lazy import to prevent build-time evaluation
+  const { connectToDatabase } = await import("@/lib/mongodb")
+  
   try {
     const { db } = await connectToDatabase()
+    const auctionId = new ObjectId(params.id)
 
-    if (!ObjectId.isValid(params.id)) {
-      return NextResponse.json({ error: "Invalid auction ID" }, { status: 400 })
-    }
-
-    const auction = await db.collection("auctions").findOne({ _id: new ObjectId(params.id) })
-
+    const auction = await db.collection("auctions").findOne({ _id: auctionId })
     if (!auction) {
       return NextResponse.json({ error: "Auction not found" }, { status: 404 })
     }
 
     // Get seller information
-    const seller = await db.collection("users").findOne(
-      { _id: new ObjectId(auction.sellerId) },
-      {
-        projection: {
-          firstName: 1,
-          lastName: 1,
-          avatar: 1,
-          rating: 1,
-          totalSales: 1,
-          createdAt: 1,
-        },
-      },
-    )
+    const seller = await db
+      .collection("users")
+      .findOne(
+        { _id: auction.sellerId },
+        { projection: { password: 0, email: 0 } }
+      )
 
-    if (seller) {
-      auction.seller = {
-        ...seller,
-        rating: seller.rating || 4.5,
-        totalSales: seller.totalSales || 0,
-        memberSince: new Date(seller.createdAt).getFullYear().toString(),
-      }
+    // Get bids for this auction
+    const bids = await db
+      .collection("bids")
+      .find({ auctionId: auctionId })
+      .sort({ amount: -1 })
+      .toArray()
+
+    const auctionWithDetails = {
+      ...auction,
+      seller: seller || { firstName: "Unknown", lastName: "User" },
+      bids,
     }
 
-    return NextResponse.json({ auction })
+    return NextResponse.json(auctionWithDetails)
   } catch (error) {
     console.error("Error fetching auction:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to fetch auction" }, { status: 500 })
   }
 }

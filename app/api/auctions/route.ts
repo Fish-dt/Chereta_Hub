@@ -1,55 +1,45 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 
 export async function GET(request: NextRequest) {
+  // Lazy import to prevent build-time evaluation
+  const { connectToDatabase } = await import("@/lib/mongodb")
+  
   try {
+    const { db } = await connectToDatabase()
     const { searchParams } = new URL(request.url)
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Number.parseInt(searchParams.get("limit") || "12")
     const category = searchParams.get("category")
     const search = searchParams.get("search")
-    const status = searchParams.get("status") || "active"
+    const sortBy = searchParams.get("sortBy") || "createdAt"
+    const sortOrder = searchParams.get("sortOrder") || "desc"
 
-    const { db } = await connectToDatabase()
-
-    // Build query
-    const query: any = { status }
-
+    const query: any = { status: "active" }
     if (category && category !== "all") {
       query.category = category
     }
-
     if (search) {
-      query.$or = [{ title: { $regex: search, $options: "i" } }, { description: { $regex: search, $options: "i" } }]
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ]
     }
 
-    // Get total count
-    const total = await db.collection("auctions").countDocuments(query)
+    const sortOptions: any = {}
+    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1
 
-    // Get auctions with pagination
     const auctions = await db
       .collection("auctions")
       .find(query)
-      .sort({ createdAt: -1 })
+      .sort(sortOptions)
       .skip((page - 1) * limit)
       .limit(limit)
       .toArray()
 
-    // Add seller information
-    const auctionsWithSeller = await Promise.all(
-      auctions.map(async (auction) => {
-        const seller = await db
-          .collection("users")
-          .findOne({ _id: auction.sellerId }, { projection: { firstName: 1, lastName: 1, avatar: 1 } })
-        return {
-          ...auction,
-          seller: seller || { firstName: "Unknown", lastName: "User" },
-        }
-      }),
-    )
+    const total = await db.collection("auctions").countDocuments(query)
 
     return NextResponse.json({
-      auctions: auctionsWithSeller,
+      auctions,
       pagination: {
         page,
         limit,
@@ -59,7 +49,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error fetching auctions:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 })
   }
 }
 
