@@ -1,23 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { ObjectId } from "mongodb"
-import { requireAuth } from "@/lib/middleware"
-import clientPromise from "@/lib/mongodb"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const authResult = await requireAuth(request, "moderator")
+  // Lazy import to prevent build-time evaluation
+  const { requireAuth } = await import("@/lib/middleware")
+  const clientPromise = await import("@/lib/mongodb")
+  
+  const authResult = await requireAuth(request, "admin")
   if (authResult instanceof NextResponse) return authResult
 
   try {
-    const client = await clientPromise
+    const client = await clientPromise.default
     const db = client.db("auctionhub")
+    const userId = new ObjectId(params.id)
 
     const result = await db.collection("users").updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: userId },
       {
         $set: {
           isSuspended: true,
           suspendedAt: new Date(),
-          suspendedBy: authResult.user._id,
           updatedAt: new Date(),
         },
       },

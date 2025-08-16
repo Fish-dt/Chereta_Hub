@@ -1,29 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth-config"
-import clientPromise from "@/lib/mongodb"
 
 export async function GET(request: NextRequest) {
-  // Use NextAuth session
-  const session = await getServerSession(authOptions)
-  if (!session || ((session.user as any).role !== "admin" && (session.user as any).role !== "moderator")) {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
-  }
+  // Lazy import to prevent build-time evaluation
+  const { requireAuth } = await import("@/lib/middleware")
+  const clientPromise = await import("@/lib/mongodb")
+  
+  const authResult = await requireAuth(request, "moderator")
+  if (authResult instanceof NextResponse) return authResult
 
   try {
-    const client = await clientPromise
+    const client = await clientPromise.default
     const db = client.db("auctionhub")
 
     const { searchParams } = new URL(request.url)
     const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "20")
-    const status = searchParams.get("status")
+    const limit = Number.parseInt(searchParams.get("limit") || "10")
+    const status = searchParams.get("status") || "pending"
 
-    const query: any = {}
-    if (status && status !== "all") {
-      query.status = status
-    }
-
+    const query: any = { status }
     const auctions = await db
       .collection("auctions")
       .find(query)

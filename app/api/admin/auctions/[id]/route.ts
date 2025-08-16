@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { ObjectId } from "mongodb"
-import { requireAuth } from "@/lib/middleware"
-import clientPromise from "@/lib/mongodb"
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  // Lazy import to prevent build-time evaluation
+  const { requireAuth } = await import("@/lib/middleware")
+  const clientPromise = await import("@/lib/mongodb")
+  
   const authResult = await requireAuth(request, "moderator")
   if (authResult instanceof NextResponse) return authResult
 
   try {
-    const client = await clientPromise
+    const client = await clientPromise.default
     const db = client.db("auctionhub")
 
     const result = await db.collection("auctions").deleteOne({ _id: new ObjectId(params.id) })
@@ -25,11 +27,15 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  // Lazy import to prevent build-time evaluation
+  const { requireAuth } = await import("@/lib/middleware")
+  const clientPromise = await import("@/lib/mongodb")
+  
   const authResult = await requireAuth(request, "moderator")
   if (authResult instanceof NextResponse) return authResult
 
   try {
-    const client = await clientPromise
+    const client = await clientPromise.default
     const db = client.db("auctionhub")
     const { status } = await request.json()
 

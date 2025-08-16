@@ -9,11 +9,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Disable static generation for API routes
-  experimental: {
-    // This prevents API routes from being evaluated during build
-    serverComponentsExternalPackages: ['mongodb'],
-  },
+  // This prevents API routes from being evaluated during build
+  serverExternalPackages: ['mongodb'],
 }
 
 export default nextConfig
