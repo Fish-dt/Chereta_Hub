@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { ObjectId } from "mongodb"
 
 export async function GET(
   request: NextRequest,
@@ -7,6 +6,7 @@ export async function GET(
 ) {
   // Lazy import to prevent build-time evaluation
   const { connectToDatabase } = await import("@/lib/mongodb")
+  const { ObjectId } = await import("mongodb")
   
   try {
     const { db } = await connectToDatabase()

@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 import { verifyToken } from "@/lib/auth"
-import { ObjectId } from "mongodb"
 
 export async function GET(request: NextRequest, { params }: { params: { conversationId: string } }) {
   try {
@@ -14,6 +12,10 @@ export async function GET(request: NextRequest, { params }: { params: { conversa
     if (!decoded) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
+
+    // Lazy import to prevent build-time evaluation
+    const { connectToDatabase } = await import("@/lib/mongodb")
+    const { ObjectId } = await import("mongodb")
 
     const { db } = await connectToDatabase()
 

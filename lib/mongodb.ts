@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb"
 
 // Check if we're in a build context
-const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL && !process.env.MONGODB_URI
+const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI
 
 let clientPromise: Promise<MongoClient>
 let connectToDatabase: () => Promise<{ client: any; db: any }>
@@ -15,6 +15,7 @@ if (isBuildTime) {
         findOne: () => Promise.resolve(null),
         insertOne: () => Promise.resolve({ insertedId: 'mock' }),
         updateOne: () => Promise.resolve({ modifiedCount: 0 }),
+        deleteOne: () => Promise.resolve({ deletedCount: 0 }),
         countDocuments: () => Promise.resolve(0),
       }),
     }),

@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth-config"
 
@@ -10,6 +9,9 @@ export async function GET(request: NextRequest) {
     if (!user || !user.id) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
+
+    // Lazy import to prevent build-time evaluation
+    const { connectToDatabase } = await import("@/lib/mongodb")
 
     const { db } = await connectToDatabase()
 

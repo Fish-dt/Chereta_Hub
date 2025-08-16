@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { ObjectId } from "mongodb"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   // Lazy imports to prevent build-time evaluation
   const { connectToDatabase } = await import("@/lib/mongodb")
   const { getServerSession } = await import("next-auth/next")
   const { authOptions } = await import("@/lib/auth-config")
+  const { ObjectId } = await import("mongodb")
   
   const session = await getServerSession(authOptions)
   const user = session?.user as any

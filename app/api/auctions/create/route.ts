@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 import { verifyToken } from "@/lib/auth"
 import fs from "fs"
 import path from "path"
@@ -82,6 +81,9 @@ export async function POST(request: NextRequest) {
     }
 
     auctionData.images = imageUrls
+
+    // Lazy import to prevent build-time evaluation
+    const { connectToDatabase } = await import("@/lib/mongodb")
 
     const { db } = await connectToDatabase()
     const result = await db.collection("auctions").insertOne(auctionData)

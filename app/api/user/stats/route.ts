@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 import { verifyToken } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -13,6 +12,9 @@ export async function GET(request: NextRequest) {
     if (!decoded) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
+
+    // Lazy import to prevent build-time evaluation
+    const { connectToDatabase } = await import("@/lib/mongodb")
 
     const { db } = await connectToDatabase()
 

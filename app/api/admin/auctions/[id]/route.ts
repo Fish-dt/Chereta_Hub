@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { ObjectId } from "mongodb"
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   // Lazy import to prevent build-time evaluation
   const { requireAuth } = await import("@/lib/middleware")
   const clientPromise = await import("@/lib/mongodb")
+  const { ObjectId } = await import("mongodb")
   
   const authResult = await requireAuth(request, "moderator")
   if (authResult instanceof NextResponse) return authResult
@@ -30,6 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   // Lazy import to prevent build-time evaluation
   const { requireAuth } = await import("@/lib/middleware")
   const clientPromise = await import("@/lib/mongodb")
+  const { ObjectId } = await import("mongodb")
   
   const authResult = await requireAuth(request, "moderator")
   if (authResult instanceof NextResponse) return authResult

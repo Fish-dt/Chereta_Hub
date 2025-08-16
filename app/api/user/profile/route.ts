@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth-config"
 
@@ -9,6 +8,9 @@ export async function GET(request: NextRequest) {
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
+
+    // Lazy import to prevent build-time evaluation
+    const { connectToDatabase } = await import("@/lib/mongodb")
 
     const { db } = await connectToDatabase()
     const profile = await db
@@ -34,6 +36,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { firstName, lastName, phone, location, bio } = await request.json()
+    
+    // Lazy import to prevent build-time evaluation
+    const { connectToDatabase } = await import("@/lib/mongodb")
+    
     const { db } = await connectToDatabase()
     await db.collection("users").updateOne(
       { email: session.user.email },
