@@ -17,20 +17,25 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials) return null;
-        const client = await clientPromise
-        const db = client.db("auctionhub")
-        const user = await db.collection("users").findOne({ email: credentials.email })
-        if (!user) return null
-        const isValid = await compare(credentials.password, user.password)
-        if (!isValid) return null
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          image: user.avatar || null,
+        try {
+          const client = await clientPromise
+          const db = client.db("auctionhub")
+          const user = await db.collection("users").findOne({ email: credentials.email })
+          if (!user) return null
+          const isValid = await compare(credentials.password, user.password)
+          if (!isValid) return null
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            image: user.avatar || null,
+          }
+        } catch (error) {
+          console.error("Error in credentials auth:", error)
+          return null
         }
       },
     }),
