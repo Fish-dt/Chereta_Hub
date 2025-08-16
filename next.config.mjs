@@ -11,11 +11,6 @@ const nextConfig = {
   },
   // This prevents API routes from being evaluated during build
   serverExternalPackages: ['mongodb'],
-  // Additional build optimizations for Vercel
-  experimental: {
-    // Disable server components external packages warning
-    serverComponentsExternalPackages: [],
-  },
 }
 
 export default nextConfig
