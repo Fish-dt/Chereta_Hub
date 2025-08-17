@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
-  // Lazy import to prevent build-time evaluation
-  const { connectToDatabase } = await import("@/lib/mongodb")
-  
   try {
+    // Lazy import to prevent build-time evaluation
+    const { connectToDatabase } = await import("@/lib/mongodb")
+    
     const { db } = await connectToDatabase()
     const { searchParams } = new URL(request.url)
     const page = Number.parseInt(searchParams.get("page") || "1")
@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")
     const sortBy = searchParams.get("sortBy") || "createdAt"
     const sortOrder = searchParams.get("sortOrder") || "desc"
+    const status = searchParams.get("status") || "active"
 
-    const query: any = { status: "active" }
+    const query: any = { status }
     if (category && category !== "all") {
       query.category = category
     }
@@ -49,12 +50,24 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error fetching auctions:", error)
-    return NextResponse.json({ error: "Failed to fetch auctions" }, { status: 500 })
+    
+    // Return empty results instead of 500 error for better UX
+    return NextResponse.json({
+      auctions: [],
+      pagination: {
+        page: 1,
+        limit: 12,
+        total: 0,
+        pages: 0,
+      },
+      error: "Unable to fetch auctions at the moment. Please try again later.",
+    })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const { connectToDatabase } = await import("@/lib/mongodb")
     const { db } = await connectToDatabase()
 
     const body = await request.json()
@@ -77,6 +90,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error creating auction:", error)
-    return NextResponse.json({ error: "Failed to create auction" }, { status: 500 })
+    return NextResponse.json({ 
+      error: "Failed to create auction. Please try again later." 
+    }, { status: 500 })
   }
 }

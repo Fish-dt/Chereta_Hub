@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials) return null;
         try {
           const client = await clientPromise
-          const db = client.db("auctionhub")
+          const db = (client as any).db("auctionhub")
           const user = await db.collection("users").findOne({ email: credentials.email })
           if (!user) return null
           const isValid = await compare(credentials.password, user.password)
@@ -58,7 +58,7 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === "google") {
         try {
           const client = await clientPromise
-          const db = client.db("auctionhub")
+          const db = (client as any).db("auctionhub")
 
           // Check if user exists in our custom users collection
           const existingUser = await db.collection("users").findOne({ email: user.email })
@@ -90,61 +90,71 @@ export const authOptions: NextAuthOptions = {
       return true
     },
     async session({ session, token, user }) {
-      // Use token fields if available (JWT strategy)
-      if (token) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).firstName = token.firstName;
-        (session.user as any).lastName = token.lastName;
-        (session.user as any).image = token.image;
+      try {
+        // Use token fields if available (JWT strategy)
+        if (token) {
+          (session.user as any).id = token.id;
+          (session.user as any).role = token.role;
+          (session.user as any).firstName = token.firstName;
+          (session.user as any).lastName = token.lastName;
+          (session.user as any).image = token.image;
+        }
+        
+        // Ensure session has all required user data
+        if (session.user && !(session.user as any).id && token) {
+          (session.user as any).id = token.id;
+          (session.user as any).role = token.role;
+          (session.user as any).firstName = token.firstName;
+          (session.user as any).lastName = token.lastName;
+          (session.user as any).image = token.image;
+        }
+        
+        return session;
+      } catch (error) {
+        console.error("Error in session callback:", error)
+        return session
       }
-      
-      // Ensure session has all required user data
-      if (session.user && !(session.user as any).id && token) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).firstName = token.firstName;
-        (session.user as any).lastName = token.lastName;
-        (session.user as any).image = token.image;
-      }
-      
-      return session;
     },
     async jwt({ token, user, account }) {
-      if (user) {
-        const u = user as any;
-        token.id = u.id;
-        token.email = u.email;
-        token.role = u.role;
-        token.firstName = u.firstName;
-        token.lastName = u.lastName;
-        token.image = u.image;
-      }
-      
-      // Handle Google OAuth user data
-      if (account?.provider === "google" && user) {
-        try {
-          const client = await clientPromise;
-          const db = client.db("auctionhub");
-          const dbUser = await db.collection("users").findOne({ email: user.email });
-          
-          if (dbUser) {
-            token.id = dbUser._id.toString();
-            token.email = dbUser.email;
-            token.role = dbUser.role;
-            token.firstName = dbUser.firstName;
-            token.lastName = dbUser.lastName;
-            token.image = dbUser.avatar;
-          }
-        } catch (error) {
-          console.error("Error fetching user data in JWT callback:", error);
+      try {
+        if (user) {
+          const u = user as any;
+          token.id = u.id;
+          token.email = u.email;
+          token.role = u.role;
+          token.firstName = u.firstName;
+          token.lastName = u.lastName;
+          token.image = u.image;
         }
+        
+        // Handle Google OAuth user data
+        if (account?.provider === "google" && user) {
+          try {
+            const client = await clientPromise;
+            const db = (client as any).db("auctionhub");
+            const dbUser = await db.collection("users").findOne({ email: user.email });
+            
+            if (dbUser) {
+              token.id = dbUser._id.toString();
+              token.email = dbUser.email;
+              token.role = dbUser.role;
+              token.firstName = dbUser.firstName;
+              token.lastName = dbUser.lastName;
+              token.image = dbUser.avatar;
+            }
+          } catch (error) {
+            console.error("Error fetching user data in JWT callback:", error);
+          }
+        }
+        
+        if (account) {
+          token.accessToken = account.access_token;
+        }
+        return token;
+      } catch (error) {
+        console.error("Error in JWT callback:", error)
+        return token
       }
-      
-      if (account) {
-        token.accessToken = account.access_token;
-      }
-      return token;
     },
   },
   pages: {
