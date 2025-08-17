@@ -18,8 +18,15 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials) return null;
         try {
-          const client = await clientPromise
-          const db = (client as any).db("auctionhub")
+          const client = await clientPromise()
+          
+          // Ensure client is properly connected
+          if (!client || typeof client.db !== 'function') {
+            console.error("Invalid MongoDB client in credentials auth")
+            return null
+          }
+          
+          const db = client.db("auctionhub")
           const user = await db.collection("users").findOne({ email: credentials.email })
           if (!user) return null
           const isValid = await compare(credentials.password, user.password)
@@ -57,8 +64,15 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         try {
-          const client = await clientPromise
-          const db = (client as any).db("auctionhub")
+          const client = await clientPromise()
+          
+          // Ensure client is properly connected
+          if (!client || typeof client.db !== 'function') {
+            console.error("Invalid MongoDB client in Google sign in")
+            return false
+          }
+          
+          const db = client.db("auctionhub")
 
           // Check if user exists in our custom users collection
           const existingUser = await db.collection("users").findOne({ email: user.email })
@@ -130,8 +144,15 @@ export const authOptions: NextAuthOptions = {
         // Handle Google OAuth user data
         if (account?.provider === "google" && user) {
           try {
-            const client = await clientPromise;
-            const db = (client as any).db("auctionhub");
+            const client = await clientPromise();
+            
+            // Ensure client is properly connected
+            if (!client || typeof client.db !== 'function') {
+              console.error("Invalid MongoDB client in JWT callback")
+              return token
+            }
+            
+            const db = client.db("auctionhub");
             const dbUser = await db.collection("users").findOne({ email: user.email });
             
             if (dbUser) {
