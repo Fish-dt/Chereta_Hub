@@ -12,7 +12,7 @@ export function HeroSection() {
   const { data: session } = useSession()
 
   return (
-    <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-20 px-4">
+    <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-20 pb-5 px-4">
       <div className="container mx-auto text-center">
         <div className="max-w-4xl mx-auto">
           <h1
