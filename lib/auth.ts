@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import clientPromise from "./mongodb"
+import { getClient } from "./mongodb"
 import { ObjectId } from "mongodb"
 
 export type UserRole = "user" | "moderator" | "admin"
@@ -54,7 +54,7 @@ export async function createUser(userData: {
   lastName: string
   role?: UserRole
 }) {
-  const client = await clientPromise
+  const client = await getClient()
   const db = client.db("auctionhub")
 
   // Check if user already exists
@@ -85,7 +85,7 @@ export async function createUser(userData: {
 }
 
 export async function getUserById(userId: string) {
-  const client = await clientPromise
+  const client = await getClient()
   const db = client.db("auctionhub")
 
   const user = await db.collection("users").findOne({ _id: new ObjectId(userId) })
@@ -97,14 +97,14 @@ export async function getUserById(userId: string) {
 }
 
 export async function getUserByEmail(email: string) {
-  const client = await clientPromise
+  const client = await getClient()
   const db = client.db("auctionhub")
 
   return await db.collection("users").findOne({ email })
 }
 
 export async function updateUserRole(userId: string, role: UserRole) {
-  const client = await clientPromise
+  const client = await getClient()
   const db = client.db("auctionhub")
 
   const result = await db.collection("users").updateOne(

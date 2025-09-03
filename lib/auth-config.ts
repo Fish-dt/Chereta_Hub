@@ -2,11 +2,11 @@ import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
-import clientPromise from "./mongodb"
+import { getClient } from "./mongodb"
 import { compare } from "bcryptjs"
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: MongoDBAdapter(getClient()),
   debug: process.env.NODE_ENV === "development",
   providers: [
     CredentialsProvider({
@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials) return null;
         try {
-          const client = await clientPromise
+          const client = await getClient()
           const db = client.db("auctionhub")
           const user = await db.collection("users").findOne({ email: credentials.email })
           if (!user) return null
@@ -57,7 +57,7 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         try {
-          const client = await clientPromise
+          const client = await getClient()
           const db = client.db("auctionhub")
 
           // Check if user exists in our custom users collection
@@ -130,7 +130,7 @@ export const authOptions: NextAuthOptions = {
         // Handle Google OAuth user data
         if (account?.provider === "google" && user) {
           try {
-            const client = await clientPromise;
+            const client = await getClient();
             const db = client.db("auctionhub");
             const dbUser = await db.collection("users").findOne({ email: user.email });
             
