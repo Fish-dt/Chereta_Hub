@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth-config"
+import { getAuthOptions } from "@/lib/auth-config"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(await getAuthOptions())
     const user = session?.user as any
     if (!user || !user.id) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })

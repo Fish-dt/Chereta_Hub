@@ -4,10 +4,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   // Lazy imports to prevent build-time evaluation
   const { connectToDatabase } = await import("@/lib/mongodb")
   const { getServerSession } = await import("next-auth/next")
-  const { authOptions } = await import("@/lib/auth-config")
+  const { getAuthOptions } = await import("@/lib/auth-config")
   const { ObjectId } = await import("mongodb")
   
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(await getAuthOptions())
   const user = session?.user as any
   if (!user || (user.role !== "admin" && user.role !== "moderator")) {
     return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })

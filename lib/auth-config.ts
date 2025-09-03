@@ -5,8 +5,10 @@ import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
 import { getClient } from "./mongodb"
 import { compare } from "bcryptjs"
 
-export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(getClient()),
+export async function getAuthOptions(): Promise<NextAuthOptions> {
+  const clientPromise = getClient()
+  return {
+    adapter: MongoDBAdapter(clientPromise),
   debug: process.env.NODE_ENV === "development",
   providers: [
     CredentialsProvider({
@@ -53,7 +55,7 @@ export const authOptions: NextAuthOptions = {
       })
     ] : []),
   ],
-  callbacks: {
+    callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         try {
@@ -156,13 +158,14 @@ export const authOptions: NextAuthOptions = {
         return token
       }
     },
-  },
-  pages: {
+    },
+    pages: {
     signIn: "/auth/login",
     error: "/auth/error",
-  },
-  session: {
+    },
+    session: {
     strategy: "jwt",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
+    },
+    secret: process.env.NEXTAUTH_SECRET,
+  }
 }

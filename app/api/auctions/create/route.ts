@@ -9,8 +9,8 @@ export const runtime = "nodejs"
 export async function POST(request: NextRequest) {
   try {
     // Try NextAuth session first
-    const { authOptions } = await import("@/lib/auth-config")
-    const session = await getServerSession(authOptions)
+    const { getAuthOptions } = await import("@/lib/auth-config")
+    const session = await getServerSession(await getAuthOptions())
 
     // Fallback to custom JWT cookie if no NextAuth session
     let authenticatedUserId: string | null = null

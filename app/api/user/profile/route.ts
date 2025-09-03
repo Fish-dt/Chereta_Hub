@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth-config"
+import { getAuthOptions } from "@/lib/auth-config"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(await getAuthOptions())
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(await getAuthOptions())
     if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }

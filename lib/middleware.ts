@@ -5,8 +5,8 @@ import { getServerSession } from "next-auth"
 export async function authenticateUser(request: NextRequest) {
   // 1) Try NextAuth session
   try {
-    const { authOptions } = await import("@/lib/auth-config")
-    const session = await getServerSession(authOptions)
+    const { getAuthOptions } = await import("@/lib/auth-config")
+    const session = await getServerSession(await getAuthOptions())
     const sessionUserId = (session?.user as any)?.id as string | undefined
     if (sessionUserId) {
       const user = await getUserById(sessionUserId)

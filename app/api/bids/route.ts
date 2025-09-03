@@ -4,10 +4,10 @@ export async function POST(request: NextRequest) {
   // Lazy import to prevent build-time evaluation
   const { connectToDatabase } = await import("@/lib/mongodb")
   const { getServerSession } = await import("next-auth/next")
-  const { authOptions } = await import("@/lib/auth-config")
+  const { getAuthOptions } = await import("@/lib/auth-config")
   
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(await getAuthOptions())
     const user = session?.user as any
     if (!user || !user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
