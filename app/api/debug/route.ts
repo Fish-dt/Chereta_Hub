@@ -7,6 +7,8 @@ export async function GET() {
       NEXTAUTH_URL: process.env.NEXTAUTH_URL ? '✅ Set' : '❌ Missing',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? '✅ Set' : '❌ Missing',
       MONGODB_URI: process.env.MONGODB_URI ? '✅ Set' : '❌ Missing',
+      MONGODB_URI_LENGTH: process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0,
+      MONGODB_URI_START: process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 20) + '...' : 'Not set',
       MONGODB_DB: process.env.MONGODB_DB || 'auctionhub',
       NODE_ENV: process.env.NODE_ENV,
       VERCEL: process.env.VERCEL,
