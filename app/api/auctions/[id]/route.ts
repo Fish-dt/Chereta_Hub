@@ -1,106 +1,72 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { connectToDatabase } = await import("@/lib/mongodb")
+    const { ObjectId } = await import("mongodb")
     const { db } = await connectToDatabase()
-    const { searchParams } = new URL(request.url)
+    const { id } = await params
 
-    const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "12")
-    const category = searchParams.get("category")
-    const search = searchParams.get("search")
-    const sortBy = searchParams.get("sortBy") || "createdAt"
-    const sortOrder = searchParams.get("sortOrder") || "desc"
-    const status = searchParams.get("status") || "active"
-
-    // ----- 1. Update expired auctions automatically -----
-    const now = new Date()
-    await db.collection("auctions").updateMany(
-      { status: "active", endTime: { $lte: now } },
-      { $set: { status: "ended" } }
-    )
-
-    // ----- 2. Build query -----
-    const query: any = {}
-    if (status === "active") {
-      query.status = "active"
-      query.endTime = { $gt: now } // extra safety, only future auctions
-    } else if (status === "ended") {
-      query.status = "ended"
+    if (!id) {
+      return NextResponse.json({ error: "Auction id is required" }, { status: 400 })
     }
 
-    if (category && category !== "all") {
-      query.category = category
-    }
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ]
+    let auction: any = null
+    try {
+      auction = await db.collection("auctions").findOne({ _id: new ObjectId(id) })
+    } catch {
+      return NextResponse.json({ error: "Invalid auction id" }, { status: 400 })
     }
 
-    // ----- 3. Sorting -----
-    const sortOptions: any = {}
-    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1
+    if (!auction) {
+      return NextResponse.json({ error: "Auction not found" }, { status: 404 })
+    }
 
-    // ----- 4. Fetch auctions -----
-    const auctions = await db
-      .collection("auctions")
-      .find(query)
-      .sort(sortOptions)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray()
+    // Attach seller details if available
+    let seller: any = null
+    if (auction.sellerId) {
+      const sellerDoc = await db.collection("users").findOne({ _id: new ObjectId(auction.sellerId) })
+      if (sellerDoc) {
+        seller = {
+          _id: sellerDoc._id.toString(),
+          firstName: sellerDoc.firstName || "",
+          lastName: sellerDoc.lastName || "",
+          avatar: sellerDoc.avatar || null,
+          rating: sellerDoc.rating ?? 0,
+          totalSales: sellerDoc.totalSales ?? 0,
+          memberSince: sellerDoc.memberSince ? new Date(sellerDoc.memberSince).toISOString().slice(0, 10) : "",
+        }
+      }
+    }
 
-    const total = await db.collection("auctions").countDocuments(query)
-
-    return NextResponse.json({
-      auctions,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
+    const responseAuction = {
+      _id: auction._id.toString(),
+      title: auction.title,
+      description: auction.description || "",
+      currentBid: auction.currentBid ?? auction.startingBid ?? 0,
+      startingBid: auction.startingBid ?? 0,
+      endTime: auction.endTime,
+      images: auction.images || [],
+      category: auction.category || "",
+      condition: auction.condition || "",
+      bidCount: auction.bidCount ?? 0,
+      watchers: auction.watchers ?? 0,
+      status: auction.status || "active",
+      seller: seller || {
+        _id: auction.sellerId?.toString?.() || "",
+        firstName: (auction.sellerName || "").split(" ")[0] || "",
+        lastName: (auction.sellerName || "").split(" ").slice(1).join(" ") || "",
+        avatar: null,
+        rating: 0,
+        totalSales: 0,
+        memberSince: "",
       },
-    })
-  } catch (error) {
-    console.error("Error fetching auctions:", error)
-    return NextResponse.json({
-      auctions: [],
-      pagination: { page: 1, limit: 12, total: 0, pages: 0 },
-      error: "Unable to fetch auctions at the moment. Please try again later.",
-    })
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const { connectToDatabase } = await import("@/lib/mongodb")
-    const { db } = await connectToDatabase()
-    const body = await request.json()
-
-    const auction = {
-      ...body,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      status: "active",
-      currentBid: body.startingBid,
-      bidCount: 0,
-      watchers: 0,
+      specifications: auction.specifications || undefined,
     }
 
-    const result = await db.collection("auctions").insertOne(auction)
-
-    return NextResponse.json({
-      success: true,
-      auctionId: result.insertedId,
-    })
+    return NextResponse.json({ auction: responseAuction })
   } catch (error) {
-    console.error("Error creating auction:", error)
-    return NextResponse.json(
-      { error: "Failed to create auction. Please try again later." },
-      { status: 500 }
-    )
+    console.error("Error fetching auction by id:", error)
+    return NextResponse.json({ error: "Unable to fetch auction" }, { status: 500 })
   }
 }

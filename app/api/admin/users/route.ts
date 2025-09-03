@@ -3,13 +3,13 @@ import { type NextRequest, NextResponse } from "next/server"
 export async function GET(request: NextRequest) {
   // Lazy import to prevent build-time evaluation
   const { requireAuth } = await import("@/lib/middleware")
-  const getClientPromise = (await import("@/lib/mongodb")).default
+  const clientPromise = (await import("@/lib/mongodb")).default
   
   const authResult = await requireAuth(request, "moderator")
   if (authResult instanceof NextResponse) return authResult
 
   try {
-    const client = await getClientPromise()
+    const client = await clientPromise
     const db = client.db("auctionhub")
 
     const { searchParams } = new URL(request.url)

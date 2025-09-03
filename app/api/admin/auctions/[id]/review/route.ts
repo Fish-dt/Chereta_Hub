@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Lazy imports to prevent build-time evaluation
   const { connectToDatabase } = await import("@/lib/mongodb")
   const { getServerSession } = await import("next-auth/next")
@@ -14,6 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   try {
+    const { id } = await params
     const { action, reason } = await request.json()
 
     if (!["approve", "reject"].includes(action)) {
@@ -21,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const { db } = await connectToDatabase()
-    const auctionId = new ObjectId(params.id)
+    const auctionId = new ObjectId(id)
 
     // Get auction details
     const auction = await db.collection("auctions").findOne({ _id: auctionId })

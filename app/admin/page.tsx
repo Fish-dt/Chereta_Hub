@@ -246,11 +246,12 @@ export default function AdminPage() {
   }
 
   const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === "all" || user.role === selectedRole
+    const first = (user.firstName || "").toLowerCase()
+    const last = (user.lastName || "").toLowerCase()
+    const mail = (user.email || "").toLowerCase()
+    const term = (searchTerm || "").toLowerCase()
+    const matchesSearch = first.includes(term) || last.includes(term) || mail.includes(term)
+    const matchesRole = selectedRole === "all" || (user.role || "user") === selectedRole
     return matchesSearch && matchesRole
   })
 
@@ -430,14 +431,14 @@ export default function AdminPage() {
                         >
                           {userData.role === "admin" && <Crown className="h-3 w-3 mr-1" />}
                           {userData.role === "moderator" && <Shield className="h-3 w-3 mr-1" />}
-                          {userData.role.charAt(0).toUpperCase() + userData.role.slice(1)}
+                          {(((userData.role || "user")[0] || "").toUpperCase()) + (userData.role || "user").slice(1)}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{userData.email}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                        <span>Member since {format(new Date(userData.memberSince), "MMM yyyy")}</span>
-                        <span>{userData.totalSales} sales</span>
-                        <span>{userData.rating.toFixed(1)} ⭐ rating</span>
+                        <span>Member since {format(new Date(userData.memberSince || new Date()), "MMM yyyy")}</span>
+                        <span>{(userData.totalSales ?? 0)} sales</span>
+                        <span>{Number(userData.rating ?? 0).toFixed(1)} ⭐ rating</span>
                       </div>
                     </div>
 

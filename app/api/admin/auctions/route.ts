@@ -3,21 +3,24 @@ import { type NextRequest, NextResponse } from "next/server"
 export async function GET(request: NextRequest) {
   // Lazy import to prevent build-time evaluation
   const { requireAuth } = await import("@/lib/middleware")
-  const getClientPromise = (await import("@/lib/mongodb")).default
+  const clientPromise = (await import("@/lib/mongodb")).default
   
   const authResult = await requireAuth(request, "moderator")
   if (authResult instanceof NextResponse) return authResult
 
   try {
-    const client = await getClientPromise()
+    const client = await clientPromise
     const db = client.db("auctionhub")
 
     const { searchParams } = new URL(request.url)
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Number.parseInt(searchParams.get("limit") || "10")
-    const status = searchParams.get("status") || "pending"
+    const status = searchParams.get("status")
 
-    const query: any = { status }
+    // Default: show items awaiting review
+    const query: any = status
+      ? { status }
+      : { status: { $in: ["pending", "pending_review"] } }
     const auctions = await db
       .collection("auctions")
       .find(query)

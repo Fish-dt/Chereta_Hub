@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth"
+import { getServerSession } from "next-auth"
 import fs from "fs"
 import path from "path"
 
@@ -7,19 +8,29 @@ export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get("auth-token")?.value
-    if (!token) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
+    // Try NextAuth session first
+    const { authOptions } = await import("@/lib/auth-config")
+    const session = await getServerSession(authOptions)
 
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    // Fallback to custom JWT cookie if no NextAuth session
+    let authenticatedUserId: string | null = null
+    if (session?.user && (session.user as any).id) {
+      authenticatedUserId = (session.user as any).id as string
+    } else {
+      const token = request.cookies.get("auth-token")?.value
+      if (!token) {
+        return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+      }
+      const decoded = verifyToken(token)
+      if (!decoded) {
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+      }
+      authenticatedUserId = decoded.userId
     }
 
     // Get user details to get firstName and lastName
     const { getUserById } = await import("@/lib/auth")
-    const user = await getUserById(decoded.userId)
+    const user = await getUserById(authenticatedUserId)
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
@@ -34,7 +45,7 @@ export async function POST(request: NextRequest) {
       condition: formData.get("condition") as string,
       location: formData.get("location") as string,
       endTime: new Date(formData.get("endTime") as string),
-      sellerId: decoded.userId,
+      sellerId: authenticatedUserId,
       sellerName: `${user.firstName} ${user.lastName}`,
       currentBid: Number.parseFloat(formData.get("startingBid") as string),
       bidCount: 0,
