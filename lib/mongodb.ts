@@ -22,23 +22,28 @@ function getMongoUri(): string {
 export function getClient(): Promise<MongoClient> {
   if (clientPromiseRef) return clientPromiseRef
 
-  const uri = getMongoUri()
+  try {
+    const uri = getMongoUri()
 
-  if (process.env.NODE_ENV === 'development') {
-    const globalWithMongo = global as typeof globalThis & {
-      _mongoClientPromise?: Promise<MongoClient>
-    }
-    if (!globalWithMongo._mongoClientPromise) {
+    if (process.env.NODE_ENV === 'development') {
+      const globalWithMongo = global as typeof globalThis & {
+        _mongoClientPromise?: Promise<MongoClient>
+      }
+      if (!globalWithMongo._mongoClientPromise) {
+        const client = new MongoClient(uri, options)
+        globalWithMongo._mongoClientPromise = client.connect()
+      }
+      clientPromiseRef = globalWithMongo._mongoClientPromise
+    } else {
       const client = new MongoClient(uri, options)
-      globalWithMongo._mongoClientPromise = client.connect()
+      clientPromiseRef = client.connect()
     }
-    clientPromiseRef = globalWithMongo._mongoClientPromise
-  } else {
-    const client = new MongoClient(uri, options)
-    clientPromiseRef = client.connect()
-  }
 
-  return clientPromiseRef
+    return clientPromiseRef
+  } catch (error) {
+    console.error("MongoDB connection error:", error)
+    throw new Error(`Failed to initialize MongoDB connection: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }
 
 export async function connectToDatabase() {

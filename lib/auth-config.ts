@@ -6,9 +6,10 @@ import { getClient } from "./mongodb"
 import { compare } from "bcryptjs"
 
 export async function getAuthOptions(): Promise<NextAuthOptions> {
-  const clientPromise = getClient()
-  return {
-    adapter: MongoDBAdapter(clientPromise),
+  try {
+    const clientPromise = getClient()
+    return {
+      adapter: MongoDBAdapter(clientPromise),
   debug: process.env.NODE_ENV === "development",
   providers: [
     CredentialsProvider({
@@ -167,5 +168,9 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     strategy: "jwt",
     },
     secret: process.env.NEXTAUTH_SECRET,
+  }
+  } catch (error) {
+    console.error("Error creating auth options:", error)
+    throw new Error(`Failed to create auth configuration: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
