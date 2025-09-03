@@ -82,6 +82,18 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               createdAt: new Date(),
               updatedAt: new Date(),
             })
+          } else {
+            // Update existing user to include Google provider info
+            await db.collection("users").updateOne(
+              { email: user.email },
+              { 
+                $set: { 
+                  provider: "google",
+                  avatar: user.image,
+                  updatedAt: new Date()
+                }
+              }
+            )
           }
 
           return true
@@ -168,6 +180,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     strategy: "jwt",
     },
     secret: process.env.NEXTAUTH_SECRET,
+    allowDangerousEmailAccountLinking: true,
   }
   } catch (error) {
     console.error("Error creating auth options:", error)
