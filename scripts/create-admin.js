@@ -2,9 +2,7 @@ import { MongoClient } from "mongodb"
 import bcrypt from "bcryptjs"
 
 const uri =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://fisseha:9IxJhEy3A0RCH0ot@cluster0.ifvdbi6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
+  process.env.MONGODB_URI
 async function createSuperAdmin() {
   const client = new MongoClient(uri)
 
