@@ -131,16 +131,16 @@ export default function AuctionDetailPage() {
       router.push("/auth/login")
       return
     }
-
+  
     if (!bidAmount || Number.parseFloat(bidAmount) <= auction!.currentBid) {
       setBidError(`Bid must be higher than current bid of $${auction!.currentBid}`)
       return
     }
-
+  
     setBidLoading(true)
     setBidError("")
     setBidSuccess("")
-
+  
     try {
       const response = await fetch("/api/bids", {
         method: "POST",
@@ -152,24 +152,37 @@ export default function AuctionDetailPage() {
           amount: Number.parseFloat(bidAmount),
         }),
       })
-
+  
       const data = await response.json()
-
-      if (response.ok) {
-        setBidSuccess("Bid placed successfully!")
+  
+      if (response.ok && data.bid) {
+        const updatedBid = data.bid
+  
+        // Update auction currentBid and bidCount immediately
+        setAuction(prev => prev ? {
+          ...prev,
+          currentBid: updatedBid.amount,
+          bidCount: prev.bidCount + 1
+        } : prev)
+  
+        // Clear input and show success
         setBidAmount("")
-        // Refresh auction and bids
-        fetchAuction()
+        setBidSuccess("Bid placed successfully!")
+  
+        // Refresh latest bids
         fetchBids()
       } else {
         setBidError(data.error || "Failed to place bid")
       }
     } catch (error) {
+      console.error("Bid error:", error)
       setBidError("Network error. Please try again.")
     } finally {
       setBidLoading(false)
     }
   }
+  
+  
 
   if (loading) {
     return (
@@ -197,7 +210,7 @@ export default function AuctionDetailPage() {
 
   const minBidAmount = auction.currentBid + 1
   const isAuctionEnded = new Date() > new Date(auction.endTime)
-  const isOwner = session && (session.user as any)?.id === auction.seller._id
+  const isOwner =session && session.user?.email === auction.seller._id;
 
   return (
     <div className="container mx-auto px-4 py-8">
