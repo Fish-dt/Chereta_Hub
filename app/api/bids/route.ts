@@ -46,6 +46,15 @@ export async function POST(request: NextRequest) {
     if (highestBid && amount <= highestBid.amount) {
       return NextResponse.json({ error: "Bid must be higher than current highest bid" }, { status: 400 });
     }
+    
+    const remainingMs = new Date(auction.endTime).getTime() - new Date().getTime();
+    if (remainingMs <= 60000) { // last 60 seconds
+      await db.collection("auctions").updateOne(
+        { _id: new ObjectId(auctionId) },
+        { $set: { endTime: new Date(Date.now() + 60000) } }
+      );
+    }
+
 
     // Insert bid
     const bid = {

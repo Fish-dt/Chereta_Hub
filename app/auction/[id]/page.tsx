@@ -73,27 +73,45 @@ export default function AuctionDetailPage() {
   }, [params.id])
 
   useEffect(() => {
-    if (auction) {
-      const timer = setInterval(() => {
-        const now = new Date().getTime()
-        const endTime = new Date(auction.endTime).getTime()
-        const distance = endTime - now
-
-        if (distance > 0) {
-          const days = Math.floor(distance / (1000 * 60 * 60 * 24))
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
-
-          setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`)
-        } else {
-          setTimeRemaining("Auction ended")
+    if (!auction) return;
+  
+    const timer = setInterval(async () => {
+      const now = new Date().getTime();
+      const endTime = new Date(auction.endTime).getTime();
+      const distance = endTime - now;
+  
+      if (distance <= 0 && auction.status === "active") {
+        // 1. Finalize auction
+        try {
+          await fetch("/api/auctions/finalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ auctionId: auction._id })
+          });
+  
+          // 2. Refresh auction data to get updated status and winner
+          await fetchAuction();
+        } catch (err) {
+          console.error("Error finalizing auction:", err);
         }
-      }, 1000)
-
-      return () => clearInterval(timer)
-    }
-  }, [auction])
+      }
+  
+      // 3. Countdown display
+      if (distance > 0) {
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+  
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setTimeRemaining("Auction ended");
+      }
+    }, 1000);
+  
+    return () => clearInterval(timer);
+  }, [auction]);
+  
 
   const fetchAuction = async () => {
     try {
@@ -128,59 +146,47 @@ export default function AuctionDetailPage() {
 
   const handlePlaceBid = async () => {
     if (!session) {
-      router.push("/auth/login")
-      return
+      router.push("/auth/login");
+      return;
     }
   
     if (!bidAmount || Number.parseFloat(bidAmount) <= auction!.currentBid) {
-      setBidError(`Bid must be higher than current bid of $${auction!.currentBid}`)
-      return
+      setBidError(`Bid must be higher than current bid of $${auction!.currentBid}`);
+      return;
     }
   
-    setBidLoading(true)
-    setBidError("")
-    setBidSuccess("")
+    setBidLoading(true);
+    setBidError("");
+    setBidSuccess("");
   
     try {
       const response = await fetch("/api/bids", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           auctionId: params.id,
           amount: Number.parseFloat(bidAmount),
         }),
-      })
+      });
   
-      const data = await response.json()
+      const data = await response.json();
   
       if (response.ok && data.bid) {
-        const updatedBid = data.bid
+        await fetchAuction();
+        await fetchBids();
   
-        // Update auction currentBid and bidCount immediately
-        setAuction(prev => prev ? {
-          ...prev,
-          currentBid: updatedBid.amount,
-          bidCount: prev.bidCount + 1
-        } : prev)
-  
-        // Clear input and show success
-        setBidAmount("")
-        setBidSuccess("Bid placed successfully!")
-  
-        // Refresh latest bids
-        fetchBids()
+        setBidAmount("");
+        setBidSuccess("Bid placed successfully!");
       } else {
-        setBidError(data.error || "Failed to place bid")
+        setBidError(data.error || "Failed to place bid");
       }
     } catch (error) {
-      console.error("Bid error:", error)
-      setBidError("Network error. Please try again.")
+      console.error("Bid error:", error);
+      setBidError("Network error. Please try again.");
     } finally {
-      setBidLoading(false)
+      setBidLoading(false);
     }
-  }
+  };
   
   
 
