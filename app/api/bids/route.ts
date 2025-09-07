@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
@@ -21,7 +22,9 @@ export async function POST(request: NextRequest) {
     const { db } = await connectToDatabase()
     
     // Check if auction exists and is active
-    const auction = await db.collection("auctions").findOne({ _id: auctionId })
+    const auction = await db.collection("auctions").findOne({
+      _id: new ObjectId(auctionId)
+    })
     if (!auction || auction.status !== "active") {
       return NextResponse.json({ error: "Auction not found or not active" }, { status: 400 })
     }

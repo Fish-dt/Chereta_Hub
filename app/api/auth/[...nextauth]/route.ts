@@ -64,12 +64,10 @@ async function getAuthOptions() {
         if (account?.provider === "google") {
           const { connectToDatabase } = await import("@/lib/mongodb")
           const { db } = await connectToDatabase()
-      
-          // Check if a user with this email exists
+    
           let existingUser = await db.collection("users").findOne({ email: user.email })
-      
+    
           if (!existingUser) {
-            // First-time Google login → create new user
             const result = await db.collection("users").insertOne({
               email: user.email,
               firstName: user.name?.split(" ")[0] || "",
@@ -77,32 +75,17 @@ async function getAuthOptions() {
               avatar: user.image || null,
               memberSince: new Date(),
             })
-            // assign the inserted user to existingUser
-            existingUser = {
-              _id: result.insertedId,
-              email: user.email,
-              firstName: user.name?.split(" ")[0] || "",
-              lastName: user.name?.split(" ").slice(1).join(" ") || "",
-              avatar: user.image || null,
-              memberSince: new Date(),
-            }
+            existingUser = { _id: result.insertedId, ...user }
           }
-      
-          // At this point, existingUser is guaranteed not to be null
-          if (!existingUser._id) {
-            throw new Error("User ID is missing")
-          }
-      
-          // Check if an account already exists
+    
           const existingAccount = await db.collection("accounts").findOne({
             provider: account.provider,
             providerAccountId: account.providerAccountId,
           })
-      
+    
           if (!existingAccount) {
-            // Link Google account to user
             await db.collection("accounts").insertOne({
-              userId: existingUser._id,
+              userId: existingUser?._id,
               type: account.type,
               provider: account.provider,
               providerAccountId: account.providerAccountId,
@@ -114,11 +97,25 @@ async function getAuthOptions() {
               id_token: account.id_token || null,
             })
           }
+    
+          // attach MongoDB user id to NextAuth session token
+          user.id = existingUser?._id.toString()
         }
-      
         return true
       },
-    },
+    
+      async jwt({ token, user }: { token: any, user: any }) {
+        // Attach MongoDB id to JWT token
+        if (user?.id) token.id = user.id
+        return token
+      },
+    
+      async session({ session, token }: { session: any, token: any }) {
+        // Attach MongoDB id to session
+        session.user.id = token.id
+        return session
+      },
+    }  ,
     pages: {
       signIn: "/auth/login",
       error: "/auth/login", // shows login page on OAuth errors

@@ -149,7 +149,7 @@ export default function AuctionDetailPage() {
         },
         body: JSON.stringify({
           auctionId: params.id,
-          bidAmount: Number.parseFloat(bidAmount),
+          amount: Number.parseFloat(bidAmount),
         }),
       })
 
