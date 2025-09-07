@@ -78,11 +78,12 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.13.0",
-    "@types/node": "^22",
+    "@types/node": "^22.18.1",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   }
 }
