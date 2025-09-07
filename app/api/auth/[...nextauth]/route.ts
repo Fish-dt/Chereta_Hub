@@ -112,7 +112,7 @@ async function getAuthOptions() {
     
       async session({ session, token }: { session: any, token: any }) {
         // Attach MongoDB id to session
-        session.user.id = token.id
+        session.user.id = token.id;
         return session
       },
     }  ,

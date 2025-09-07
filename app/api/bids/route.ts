@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
     // Insert bid
     const bid = {
       auctionId,
+      bidderId: user.id,      
       bidderEmail: user.email,
       bidderName: user.name,
       amount,

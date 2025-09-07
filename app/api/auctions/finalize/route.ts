@@ -6,10 +6,9 @@ export async function POST(request: NextRequest) {
     const { ObjectId } = await import("mongodb")
     const { db } = await connectToDatabase()
 
-    // Get body data
+    // Get auctionId from body
     const body = await request.json()
     const auctionId = body.auctionId
-
     if (!auctionId) {
       return NextResponse.json({ error: "Auction id is required" }, { status: 400 })
     }
@@ -20,31 +19,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Auction not found" }, { status: 404 })
     }
 
-    // Check if already ended
+    // Already ended?
     if (auction.status === "ended") {
-      return NextResponse.json({ message: "Auction already finalized" })
+      return NextResponse.json({ message: "Auction already finalized", winnerId: auction.winnerId || null })
     }
 
-    // Find highest bid
+    // Get highest bid for this auction
     const highestBid = await db
       .collection("bids")
-      .find({ auctionId: new ObjectId(auctionId) })
+      .find({ auctionId: auctionId }) // store auctionId as string
       .sort({ amount: -1 })
       .limit(1)
       .toArray()
 
-    let winnerId = null
+    let winnerId: string | null = null
     if (highestBid.length > 0) {
-      winnerId = highestBid[0].bidderId // adjust based on your bids schema
+      winnerId = highestBid[0].bidderId
     }
 
-    // Update auction with winner and mark ended
+    // Update auction
     await db.collection("auctions").updateOne(
       { _id: new ObjectId(auctionId) },
       {
         $set: {
           status: "ended",
-          winnerId: winnerId,
+          winnerId: winnerId ? new ObjectId(winnerId) : null,
           updatedAt: new Date(),
         },
       }
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: "Auction finalized",
-      winnerId: winnerId,
+      winnerId,
     })
   } catch (error) {
     console.error("Error finalizing auction:", error)
