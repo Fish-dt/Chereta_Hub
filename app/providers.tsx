@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/contexts/language-context";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Toaster } from "@/components/ui/toaster";
+import { ChatBot } from "@/components/chatbot";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           {children}
           <Footer />
           <Toaster />
+          <ChatBot />
         </LanguageProvider>
       </ThemeProvider>
     </SessionProvider>
