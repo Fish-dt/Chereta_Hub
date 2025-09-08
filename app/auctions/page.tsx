@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { AuctionCard } from "@/components/auction-card"
 import { AuctionFilters } from "@/components/auction-filters"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ interface Auction {
   }
   bidCount: number
   status: string
+  condition?: string
 }
 
 export default function AuctionsPage() {
@@ -36,6 +37,14 @@ export default function AuctionsPage() {
   const { t, language } = useLanguage()
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
+  // Filters
+  const [minPrice, setMinPrice] = useState(0)
+  const [maxPrice, setMaxPrice] = useState(10000)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([])
+  const [selectedStatus, setSelectedStatus] = useState<string[]>(["active"])
+
+  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchQuery)
@@ -45,28 +54,32 @@ export default function AuctionsPage() {
 
   useEffect(() => {
     fetchAuctions()
-  }, [debouncedSearch, sortBy])
+  }, [debouncedSearch, sortBy, minPrice, maxPrice, selectedCategory, selectedConditions, selectedStatus])
 
   const fetchAuctions = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        search: debouncedSearch,
-        sort: sortBy,
-        status: "active",
-      })
+      const params = new URLSearchParams()
+      params.set("search", debouncedSearch)
+      params.set("sort", sortBy)
+      params.set("minPrice", String(minPrice))
+      params.set("maxPrice", String(maxPrice))
+      if (selectedCategory) params.set("category", selectedCategory)
+      if (selectedConditions.length > 0) params.set("conditions", selectedConditions.join(","))
+      if (selectedStatus.length > 0) params.set("status", selectedStatus.join(","))
 
       const response = await fetch(`/api/auctions?${params}`)
       const data = await response.json()
 
       if (response.ok) {
         setAuctions(data.auctions || [])
+        setError("")
       } else {
         setError(data.error || "Failed to fetch auctions")
       }
-    } catch (error) {
+    } catch (err) {
       setError("Network error")
-      console.error("Error fetching auctions:", error)
+      console.error("Error fetching auctions:", err)
     } finally {
       setLoading(false)
     }
@@ -101,7 +114,18 @@ export default function AuctionsPage() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar */}
         <div className={`lg:w-64 ${showFilters ? "block" : "hidden lg:block"}`}>
-          <AuctionFilters />
+          <AuctionFilters
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            onMinPriceChange={setMinPrice}
+            onMaxPriceChange={setMaxPrice}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            selectedConditions={selectedConditions}
+            onConditionChange={setSelectedConditions}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+          />
         </div>
 
         {/* Main Content */}
@@ -113,7 +137,7 @@ export default function AuctionsPage() {
                 {t("nav.auctions")}
               </h1>
               <p className={`text-gray-600 ${language === "am" ? "font-amharic" : ""}`}>
-                Showing {auctions.length} active auctions
+                Showing {auctions.length} auctions
               </p>
             </div>
 

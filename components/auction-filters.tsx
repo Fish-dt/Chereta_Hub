@@ -24,32 +24,59 @@ const categories = [
 
 const conditions = ["New", "Like New", "Excellent", "Good", "Fair", "Poor"]
 
-export function AuctionFilters() {
-  const [priceRange, setPriceRange] = useState([0, 10000])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([])
+export interface AuctionFiltersProps {
+  minPrice: number
+  maxPrice: number
+  onMinPriceChange: (value: number) => void
+  onMaxPriceChange: (value: number) => void
+  selectedCategory: string | null
+  onCategoryChange: (category: string | null) => void
+  selectedConditions: string[]
+  onConditionChange: (conditions: string[]) => void
+  selectedStatus: string[]
+  onStatusChange: (status: string[]) => void
+}
+
+export function AuctionFilters({
+  minPrice,
+  maxPrice,
+  onMinPriceChange,
+  onMaxPriceChange,
+  selectedCategory,
+  onCategoryChange,
+  selectedConditions,
+  onConditionChange,
+  selectedStatus,
+  onStatusChange,
+}: AuctionFiltersProps) {
   const { t, language } = useLanguage()
 
   const handleCategoryChange = (category: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategories([...selectedCategories, category])
-    } else {
-      setSelectedCategories(selectedCategories.filter((c) => c !== category))
-    }
+    onCategoryChange(checked ? category : null)
   }
 
   const handleConditionChange = (condition: string, checked: boolean) => {
     if (checked) {
-      setSelectedConditions([...selectedConditions, condition])
+      onConditionChange([...selectedConditions, condition])
     } else {
-      setSelectedConditions(selectedConditions.filter((c) => c !== condition))
+      onConditionChange(selectedConditions.filter((c) => c !== condition))
+    }
+  }
+
+  const handleStatusChange = (status: string, checked: boolean) => {
+    if (checked) {
+      onStatusChange([...selectedStatus, status])
+    } else {
+      onStatusChange(selectedStatus.filter((s) => s !== status))
     }
   }
 
   const clearFilters = () => {
-    setPriceRange([0, 10000])
-    setSelectedCategories([])
-    setSelectedConditions([])
+    onMinPriceChange(0)
+    onMaxPriceChange(10000)
+    onCategoryChange(null)
+    onConditionChange([])
+    onStatusChange(["active"])
   }
 
   return (
@@ -62,22 +89,26 @@ export function AuctionFilters() {
           </Button>
         </CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-6">
         {/* Price Range */}
         <div>
           <Label className={`text-sm font-medium ${language === "am" ? "font-amharic" : ""}`}>Price Range</Label>
-          <div className="mt-2">
+          <div className="mt-2 relative">
             <Slider
-              value={priceRange}
-              onValueChange={setPriceRange}
+              value={[minPrice, maxPrice]}
+              onValueCommit={(values) => {
+                onMinPriceChange(values[0])
+                onMaxPriceChange(values[1])
+              }}
               max={10000}
               min={0}
               step={100}
               className="w-full"
             />
             <div className="flex justify-between text-sm text-muted-foreground mt-1">
-              <span>${priceRange[0]}</span>
-              <span>${priceRange[1]}</span>
+              <span>${minPrice}</span>
+              <span>${maxPrice}</span>
             </div>
           </div>
         </div>
@@ -94,7 +125,7 @@ export function AuctionFilters() {
               <div key={category} className="flex items-center space-x-2">
                 <Checkbox
                   id={category}
-                  checked={selectedCategories.includes(category)}
+                  checked={selectedCategory === category}
                   onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
                 />
                 <Label htmlFor={category} className="text-sm cursor-pointer">
@@ -135,21 +166,23 @@ export function AuctionFilters() {
           <Label className={`text-sm font-medium ${language === "am" ? "font-amharic" : ""}`}>Auction Status</Label>
           <div className="mt-2 space-y-2">
             <div className="flex items-center space-x-2">
-              <Checkbox id="active" defaultChecked />
+              <Checkbox
+                id="active"
+                checked={selectedStatus.includes("active")}
+                onCheckedChange={(checked) => handleStatusChange("active", checked as boolean)}
+              />
               <Label htmlFor="active" className="text-sm cursor-pointer">
                 Active
               </Label>
             </div>
             <div className="flex items-center space-x-2">
-              <Checkbox id="ending-soon" />
+              <Checkbox
+                id="ending-soon"
+                checked={selectedStatus.includes("ending-soon")}
+                onCheckedChange={(checked) => handleStatusChange("ending-soon", checked as boolean)}
+              />
               <Label htmlFor="ending-soon" className="text-sm cursor-pointer">
                 Ending Soon (24h)
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox id="buy-now" />
-              <Label htmlFor="buy-now" className="text-sm cursor-pointer">
-                Buy It Now Available
               </Label>
             </div>
           </div>
