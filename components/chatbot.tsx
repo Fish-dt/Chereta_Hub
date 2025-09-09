@@ -10,7 +10,7 @@ interface Message {
 }
 
 export function ChatBot() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false); // start closed
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,60 +59,59 @@ export function ChatBot() {
 
   return (
     <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end">
-      {/* Chat Panel */}
-      <div
-        className={`flex flex-col w-80 h-96 bg-white border shadow-lg rounded-xl overflow-hidden transform transition-transform duration-200 ${
-          open ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        {open && (
-          <>
-            {/* Header */}
-            <div className="flex items-center justify-between p-2 border-b">
-              <span className="font-medium">CheretaHub ChatBot</span>
-              <Button variant="ghost" size="icon" onClick={toggleOpen}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+      {/* Full Chat Panel */}
+      {open && (
+        <div className="flex flex-col w-80 h-96 bg-white border shadow-lg rounded-xl overflow-hidden transform transition-transform duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between p-2 border-b">
+            <span className="font-medium">CheretaHub ChatBot</span>
+            <Button variant="ghost" size="icon" onClick={toggleOpen}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
-            {/* Messages */}
-            <div className="flex-1 p-2 overflow-y-auto space-y-2">
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`p-2 rounded-md max-w-[80%] ${
-                    msg.sender === "user" ? "bg-blue-100 self-end" : "bg-gray-100 self-start"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              ))}
-              {loading && <div className="text-gray-500 text-sm">Gemini is typing...</div>}
-              <div ref={messagesEndRef} />
-            </div>
+          {/* Messages */}
+          <div className="flex-1 p-2 overflow-y-auto space-y-2 bg-gray-50">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`p-2 rounded-md max-w-[80%] ${
+                  msg.sender === "user" ? "bg-blue-100 self-end" : "bg-gray-200 self-start"
+                }`}
+              >
+                {msg.text}
+              </div>
+            ))}
+            {loading && <div className="text-gray-500 text-sm">Gemini is typing...</div>}
+            <div ref={messagesEndRef} />
+          </div>
 
-            {/* Input */}
-            <div className="flex p-2 border-t">
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Ask me anything..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                className="flex-1 border rounded-md px-2 py-1 focus:outline-none"
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              />
-              <Button onClick={handleSend} className="ml-2">
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
+          {/* Input */}
+          <div className="flex p-2 border-t">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Ask me anything..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="flex-1 border rounded-md px-2 py-1 focus:outline-none"
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            />
+            <Button onClick={handleSend} className="ml-2">
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
-      {/* Floating Button */}
+      {/* Floating Icon */}
       {!open && (
-        <Button variant="default" size="icon" onClick={toggleOpen} className="mt-2">
+        <Button
+          variant="default"
+          size="icon"
+          onClick={toggleOpen}
+          className="mt-2 bg-blue-500 text-white shadow-lg hover:bg-blue-600"
+        >
           <MessageSquare className="h-5 w-5" />
         </Button>
       )}

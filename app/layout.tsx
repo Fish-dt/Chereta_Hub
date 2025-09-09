@@ -1,27 +1,17 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { Providers } from "@/components/providers"
+import "./globals.css";
+import { Inter } from "next/font/google";
+import { ClientProviders } from "@/components/ClientProviders";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "CheretaHub - Premium Auction Platform",
-  description: "Discover unique items and bid on exclusive auctions at CheretaHub",
-    generator: 'auction hub'
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
-  )
+  );
 }

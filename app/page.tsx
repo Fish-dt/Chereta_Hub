@@ -1,7 +1,10 @@
-import { HeroSection } from "@/components/hero-section"
-import { CategoriesSection } from "@/components/categories-section"
-import { FeaturedAuctions } from "@/components/featured-auctions"
-import { EndingSoonAuctions } from "@/components/ending-soon"
+
+"use client";
+
+import { HeroSection } from "@/components/hero-section";
+import { CategoriesSection } from "@/components/categories-section";
+import { FeaturedAuctions } from "@/components/featured-auctions";
+import { EndingSoonAuctions } from "@/components/ending-soon";
 
 export default function HomePage() {
   return (
@@ -10,5 +13,5 @@ export default function HomePage() {
       <EndingSoonAuctions />
       <CategoriesSection />
     </div>
-  )
+  );
 }
