@@ -10,7 +10,7 @@ interface Message {
 }
 
 export function ChatBot() {
-  const [open, setOpen] = useState(false); // start closed
+  const [open, setOpen] = useState(false); // start minimized
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,6 +28,18 @@ export function ChatBot() {
   // Auto-focus input when opened
   useEffect(() => {
     if (open) inputRef.current?.focus();
+  }, [open]);
+
+  // Optional: Preload greeting when opened
+  useEffect(() => {
+    if (open && messages.length === 0) {
+      setMessages([
+        {
+          sender: "bot",
+          text: "Hi! I'm CheretaHub ChatBot. I can help you with auctions, bids, selling items, and more."
+        }
+      ]);
+    }
   }, [open]);
 
   const handleSend = async () => {
@@ -82,7 +94,7 @@ export function ChatBot() {
                 {msg.text}
               </div>
             ))}
-            {loading && <div className="text-gray-500 text-sm">Gemini is typing...</div>}
+            {loading && <div className="text-gray-500 text-sm">CheretaHub is typing...</div>}
             <div ref={messagesEndRef} />
           </div>
 
