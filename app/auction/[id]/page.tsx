@@ -15,6 +15,8 @@ import { Clock, Eye, Heart, Share2, Flag, User, Star, Gavel, Shield, Loader2 } f
 import { useSession } from "next-auth/react"
 import { useLanguage } from "@/contexts/language-context"
 import { QRCodeCanvas } from "qrcode.react";
+import { Facebook, Twitter, Instagram, Send } from "lucide-react";
+
 
 
 interface Auction {
@@ -550,37 +552,39 @@ export default function AuctionDetailPage() {
               <Button onClick={handleDownloadQR}>Download QR</Button>
             </div>
 
-            {/* Social Share Links */}
-            <div className="flex justify-center gap-4">
+            {/* Social Share Icons */}
+            <div className="flex justify-center gap-6 text-2xl">
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                  auctionUrl
-                )}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(auctionUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800"
               >
-                Facebook
+                <Facebook />
               </a>
               <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
-                  auctionUrl
-                )}&text=Check out this auction!`}
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(auctionUrl)}&text=Check out this auction!`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sky-500 hover:text-sky-700"
               >
-                X
+                <Twitter />
               </a>
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(
-                  `Check out this auction: ${auctionUrl}`
-                )}`}
+                href={`https://www.instagram.com/`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-green-600 hover:text-green-800"
+                className="text-pink-500 hover:text-pink-700"
               >
-                WhatsApp
+                <Instagram />
+              </a>
+              <a
+                href={`https://t.me/share/url?url=${encodeURIComponent(auctionUrl)}&text=Check out this auction!`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-600"
+              >
+                <Send />
               </a>
             </div>
           </div>
