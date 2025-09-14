@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
@@ -67,6 +67,7 @@ export default function AuctionDetailPage() {
   const [bidError, setBidError] = useState("")
   const [bidSuccess, setBidSuccess] = useState("")
   const [shareOpen, setShareOpen] = useState(false);
+  const qrRef = useRef<HTMLCanvasElement>(null);
   const auctionUrl =
   typeof window !== "undefined" && auction
     ? `${window.location.origin}/auction/${auction._id}`
@@ -151,6 +152,17 @@ export default function AuctionDetailPage() {
       console.error("Error fetching bids:", error)
     }
   }
+  const handleDownloadQR = () => {
+    if (!qrRef.current) return;
+
+    const canvas = qrRef.current;
+    const url = canvas.toDataURL("image/png");
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${auction?.title || "auction"}-qr.png`;
+    link.click();
+  };
 
   const handlePlaceBid = async () => {
     if (!session) {
@@ -518,15 +530,24 @@ export default function AuctionDetailPage() {
               ✕
             </button>
 
-            {/* Title */}
             <h2 className="text-lg font-semibold mb-4 text-center">
               Share this Auction
             </h2>
 
             {/* QR Code */}
             <div className="flex justify-center mb-4">
-              <QRCodeCanvas value={auctionUrl} size={150} fgColor="#000000" bgColor="#ffffff" />
+              <QRCodeCanvas
+                ref={qrRef}
+                value={auctionUrl}
+                size={150}
+                fgColor="#000000"
+                bgColor="#ffffff"
+              />
+            </div>
 
+            {/* Download QR Button */}
+            <div className="flex justify-center mb-4">
+              <Button onClick={handleDownloadQR}>Download QR</Button>
             </div>
 
             {/* Social Share Links */}
