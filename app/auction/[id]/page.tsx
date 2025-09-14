@@ -14,6 +14,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Clock, Eye, Heart, Share2, Flag, User, Star, Gavel, Shield, Loader2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useLanguage } from "@/contexts/language-context"
+import { QRCodeCanvas } from "qrcode.react";
+
 
 interface Auction {
   _id: string
@@ -64,6 +66,12 @@ export default function AuctionDetailPage() {
   const [error, setError] = useState("")
   const [bidError, setBidError] = useState("")
   const [bidSuccess, setBidSuccess] = useState("")
+  const [shareOpen, setShareOpen] = useState(false);
+  const auctionUrl =
+  typeof window !== "undefined" && auction
+    ? `${window.location.origin}/auction/${auction._id}`
+    : "";
+
 
   useEffect(() => {
     if (params.id) {
@@ -352,10 +360,11 @@ export default function AuctionDetailPage() {
                   <Heart className={`h-4 w-4 mr-2 ${isWatching ? "fill-current" : ""}`} />
                   {isWatching ? "Watching" : "Watch"}
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
+
                 <Button variant="outline" size="sm">
                   <Flag className="h-4 w-4 mr-2" />
                   Report
@@ -498,6 +507,64 @@ export default function AuctionDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      {shareOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-md w-full p-6 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShareOpen(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              ✕
+            </button>
+
+            {/* Title */}
+            <h2 className="text-lg font-semibold mb-4 text-center">
+              Share this Auction
+            </h2>
+
+            {/* QR Code */}
+            <div className="flex justify-center mb-4">
+              <QRCodeCanvas value={auctionUrl} size={150} fgColor="#000000" bgColor="#ffffff" />
+
+            </div>
+
+            {/* Social Share Links */}
+            <div className="flex justify-center gap-4">
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                  auctionUrl
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800"
+              >
+                Facebook
+              </a>
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
+                  auctionUrl
+                )}&text=Check out this auction!`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sky-500 hover:text-sky-700"
+              >
+                X
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `Check out this auction: ${auctionUrl}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-600 hover:text-green-800"
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
