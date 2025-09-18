@@ -35,39 +35,42 @@ async function getAuthOptions() {
           turnstileToken: { label: "Turnstile Token", type: "text" }, // 🔑 added
         },
         async authorize(credentials) {
-          // 🔹 1. Verify Turnstile before DB lookup
-          const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-            method: "POST",
-            body: new URLSearchParams({
-              secret: process.env.TURNSTILE_SECRET_KEY!,
-              response: credentials?.turnstileToken || "",
-            }),
-          })
-
-          const verifyData = await verifyRes.json()
-          if (!verifyData.success) {
-            console.error("Turnstile failed:", verifyData)
-            throw new Error("Failed captcha verification")
+          // 🔹 1. Optional Turnstile verification
+          if (credentials?.turnstileToken) {
+            const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+              method: "POST",
+              body: new URLSearchParams({
+                secret: process.env.TURNSTILE_SECRET_KEY!,
+                response: credentials.turnstileToken,
+              }),
+            });
+        
+            const verifyData = await verifyRes.json();
+            if (!verifyData.success) {
+              console.error("Turnstile failed:", verifyData);
+              throw new Error("Failed captcha verification");
+            }
           }
-
+        
           // 🔹 2. Normal credentials login
-          const { connectToDatabase } = await import("@/lib/mongodb")
-          const { db } = await connectToDatabase()
-
-          const user = await db.collection("users").findOne({ email: credentials?.email })
-          if (!user) throw new Error("No user found")
-
-          const validPassword = await compare(credentials!.password, user.password)
-          if (!validPassword) throw new Error("Invalid password")
-
+          const { connectToDatabase } = await import("@/lib/mongodb");
+          const { db } = await connectToDatabase();
+        
+          const user = await db.collection("users").findOne({ email: credentials?.email });
+          if (!user) throw new Error("No user found");
+        
+          const validPassword = await compare(credentials!.password, user.password);
+          if (!validPassword) throw new Error("Invalid password");
+        
           return {
             id: user._id.toString(),
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
             avatar: user.avatar || null,
-          }
-        },
+          };
+        }
+        ,
       }),
 
       GoogleProvider({

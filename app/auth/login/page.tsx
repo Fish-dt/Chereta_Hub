@@ -142,13 +142,16 @@ export default function LoginPage() {
             </div>
 
             <div className="flex justify-center mt-4">
-              <Turnstile
-                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-                onVerify={(token) => setToken(token)}
-                size="normal"
-                theme="light"
-              />
+              <div className="w-full max-w-md">
+                <Turnstile
+                  sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                  onVerify={(token) => setToken(token)}
+                  size="normal"
+                  theme="light"
+                />
+              </div>
             </div>
+
 
 
             <Button type="submit" className="w-full" disabled={isLoading}>
