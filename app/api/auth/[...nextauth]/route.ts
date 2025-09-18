@@ -32,19 +32,34 @@ async function getAuthOptions() {
         credentials: {
           email: { label: "Email", type: "text" },
           password: { label: "Password", type: "password" },
+          turnstileToken: { label: "Turnstile Token", type: "text" }, // 🔑 added
         },
         async authorize(credentials) {
+          // 🔹 1. Verify Turnstile before DB lookup
+          const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+            method: "POST",
+            body: new URLSearchParams({
+              secret: process.env.TURNSTILE_SECRET_KEY!,
+              response: credentials?.turnstileToken || "",
+            }),
+          })
+
+          const verifyData = await verifyRes.json()
+          if (!verifyData.success) {
+            console.error("Turnstile failed:", verifyData)
+            throw new Error("Failed captcha verification")
+          }
+
+          // 🔹 2. Normal credentials login
           const { connectToDatabase } = await import("@/lib/mongodb")
           const { db } = await connectToDatabase()
 
           const user = await db.collection("users").findOne({ email: credentials?.email })
           if (!user) throw new Error("No user found")
 
-          // Compare password if stored hashed
           const validPassword = await compare(credentials!.password, user.password)
           if (!validPassword) throw new Error("Invalid password")
 
-          // Return user object (NextAuth will attach it to session)
           return {
             id: user._id.toString(),
             email: user.email,
@@ -54,19 +69,21 @@ async function getAuthOptions() {
           }
         },
       }),
+
       GoogleProvider({
         clientId: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       }),
     ],
+
     callbacks: {
-      async signIn({ user, account }: { user: any, account: any }) {
+      async signIn({ user, account }: { user: any; account: any }) {
         if (account?.provider === "google") {
           const { connectToDatabase } = await import("@/lib/mongodb")
           const { db } = await connectToDatabase()
-    
+
           let existingUser = await db.collection("users").findOne({ email: user.email })
-    
+
           if (!existingUser) {
             const result = await db.collection("users").insertOne({
               email: user.email,
@@ -77,12 +94,12 @@ async function getAuthOptions() {
             })
             existingUser = { _id: result.insertedId, ...user }
           }
-    
+
           const existingAccount = await db.collection("accounts").findOne({
             provider: account.provider,
             providerAccountId: account.providerAccountId,
           })
-    
+
           if (!existingAccount) {
             await db.collection("accounts").insertOne({
               userId: existingUser?._id,
@@ -97,28 +114,27 @@ async function getAuthOptions() {
               id_token: account.id_token || null,
             })
           }
-    
+
           // attach MongoDB user id to NextAuth session token
           user.id = existingUser?._id.toString()
         }
         return true
       },
-    
-      async jwt({ token, user }: { token: any, user: any }) {
-        // Attach MongoDB id to JWT token
+
+      async jwt({ token, user }: { token: any; user: any }) {
         if (user?.id) token.id = user.id
         return token
       },
-    
-      async session({ session, token }: { session: any, token: any }) {
-        // Attach MongoDB id to session
-        session.user.id = token.id;
+
+      async session({ session, token }: { session: any; token: any }) {
+        session.user.id = token.id
         return session
       },
-    }  ,
+    },
+
     pages: {
       signIn: "/auth/login",
-      error: "/auth/login", // shows login page on OAuth errors
+      error: "/auth/login",
     },
   }
 }

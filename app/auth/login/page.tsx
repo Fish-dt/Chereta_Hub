@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { Gavel, Eye, EyeOff, Loader2 } from "lucide-react"
 import { signIn, useSession } from "next-auth/react"
 import { useLanguage } from "@/contexts/language-context"
+import Turnstile from "react-turnstile"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [token, setToken] = useState<string | null>(null)
 
   // Get the callback URL from search params or default to dashboard
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
@@ -32,7 +34,8 @@ export default function LoginPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (session) {
-      if (session.user.role === "admin" || session.user.role === "moderator") {
+      const userRole = (session.user as any).role
+      if (userRole === "admin" || userRole === "moderator") {
         router.push("/admin")
       } else {
         const decodedUrl = decodeURIComponent(callbackUrl)
@@ -58,6 +61,7 @@ export default function LoginPage() {
       email,
       password,
       callbackUrl,
+      turnstileToken: token,
     })
     if (res?.error) setError("Invalid email or password")
     else router.push(callbackUrl)
@@ -77,7 +81,7 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className={`text-2xl font-bold text-center ${language === "am" ? "font-amharic" : ""}`}>
-            Welcome back
+            Welcome
           </CardTitle>
           <CardDescription className={`text-center ${language === "am" ? "font-amharic" : ""}`}>
             Sign in to your account to continue
@@ -136,6 +140,16 @@ export default function LoginPage() {
                 </Button>
               </div>
             </div>
+
+            <div className="flex justify-center mt-4">
+              <Turnstile
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onVerify={(token) => setToken(token)}
+                size="normal"
+                theme="light"
+              />
+            </div>
+
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
