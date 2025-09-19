@@ -35,6 +35,7 @@ interface UserStats {
   auctionsWon: number
   itemsSold: number
   rating: number
+  balance: number
 }
 
 export default function ProfilePage() {
@@ -194,7 +195,7 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <Tabs defaultValue="personal" className="w-full">
+        <Tabs defaultValue="activity" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="personal">{t("profile.personal.info")}</TabsTrigger>
             <TabsTrigger value="activity">{t("profile.activity")}</TabsTrigger>
@@ -409,6 +410,28 @@ export default function ProfilePage() {
                 </CardContent>
               </Card>
             </div>
+            <Card className="lg:col-span-2 mb-8">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                {/* Balance Info */}
+                <div>
+                  <p className="text-sm text-muted-foreground">Available Balance</p>
+                  <p className="text-3xl font-bold">$ {stats?.balance?.toFixed(2) || "0.00"}</p>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1 md:flex-none">
+                    Deposit
+                  </Button>
+                  <Button className="flex-1 md:flex-none">
+                    Withdraw
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
 
             <Card>
               <CardHeader>
