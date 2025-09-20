@@ -17,6 +17,8 @@ import { Separator } from "@/components/ui/separator"
 import { User, Star, Trophy, ShoppingBag, Gavel, Edit, Save, X, Loader2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useLanguage } from "@/contexts/language-context"
+import { DepositDialog } from "@/components/deposit-dialog"
+
 
 interface UserProfile {
   _id: string
@@ -158,6 +160,7 @@ export default function ProfilePage() {
     setError("")
     setSuccess("")
   }
+  
 
   if (loading) {
     return (
@@ -421,9 +424,12 @@ export default function ProfilePage() {
 
                 {/* Buttons */}
                 <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1 md:flex-none">
-                    Deposit
-                  </Button>
+                <DepositDialog
+                  email={session?.user?.email || "fishdesta70@gmmail.com"}
+                  firstName={profile?.firstName || "Fish"}
+                  lastName={profile?.lastName || "Wanore"}
+                />
+
                   <Button className="flex-1 md:flex-none">
                     Withdraw
                   </Button>

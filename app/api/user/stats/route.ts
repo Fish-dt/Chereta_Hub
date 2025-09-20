@@ -1,47 +1,40 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { verifyToken } from "@/lib/auth"
+import { getServerSession } from "next-auth/next"
+import { getAuthOptions } from "@/lib/auth-config"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("auth-token")?.value
-    if (!token) {
+    // Get session via NextAuth
+    const session = await getServerSession(await getAuthOptions())
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
-    }
+    const userEmail = session.user.email
 
-    // Lazy import to prevent build-time evaluation
+    // Lazy import MongoDB
     const { connectToDatabase } = await import("@/lib/mongodb")
-
     const { db } = await connectToDatabase()
 
-    // Get total bids
-    const totalBids = await db.collection("bids").countDocuments({ bidderId: decoded.userId })
-
-    // Get auctions won
+    // Fetch stats
+    const totalBids = await db.collection("bids").countDocuments({ bidderEmail: userEmail })
     const auctionsWon = await db.collection("auctions").countDocuments({
-      winnerId: decoded.userId,
+      winnerEmail: userEmail,
       status: "completed",
     })
-
-    // Get items sold
     const itemsSold = await db.collection("auctions").countDocuments({
-      sellerId: decoded.userId,
+      sellerEmail: userEmail,
       status: "completed",
     })
 
-    // Calculate rating (simplified - in production, use actual reviews)
-    const rating = 4.5 // Default rating
+    // Default rating
+    const rating = 4.5
 
-    const stats = {
-      totalBids,
-      auctionsWon,
-      itemsSold,
-      rating,
-    }
+    // Optional: fetch user balance
+    const user = await db.collection("users").findOne({ email: userEmail }, { projection: { balance: 1 } })
+    const balance = user?.balance || 0
+
+    const stats = { totalBids, auctionsWon, itemsSold, rating, balance }
 
     return NextResponse.json({ stats })
   } catch (error) {
