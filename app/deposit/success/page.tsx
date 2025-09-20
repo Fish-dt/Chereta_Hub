@@ -23,22 +23,13 @@ export default function DepositSuccess() {
 
         if (data.status === "success") {
           setStatus("✅ Payment Successful! Your balance will update shortly.")
-          setLoading(false)
-
-          // Optional: redirect back to profile after 5 seconds
-          setTimeout(() => {
-            window.location.href = "/profile"
-          }, 5000)
-        } else if (data.status === "failed") {
-          setStatus("❌ Payment Failed or Pending.")
-          setLoading(false)
         } else {
-          setStatus("⌛ Payment verification in progress...")
-          setLoading(false)
+          setStatus("❌ Payment Failed or Pending.")
         }
       } catch (err) {
         console.error("Verification error:", err)
         setStatus("⚠️ Something went wrong while verifying payment.")
+      } finally {
         setLoading(false)
       }
     }
@@ -46,9 +37,5 @@ export default function DepositSuccess() {
     verifyPayment()
   }, [searchParams])
 
-  return (
-    <div className="p-6 text-center text-lg">
-      {loading ? "⏳ Verifying your payment..." : status}
-    </div>
-  )
+  return <div className="p-6 text-center text-lg">{loading ? "⏳ Verifying your payment..." : status}</div>
 }
