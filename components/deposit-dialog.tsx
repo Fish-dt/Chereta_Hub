@@ -43,6 +43,7 @@ export function DepositDialog({ email, firstName, lastName }: { email: string; f
         console.error("Chapa Error:", data)
         alert("Failed to start payment. Try again.")
       }
+      
     } catch (err) {
       console.error(err)
       alert("Something went wrong.")
