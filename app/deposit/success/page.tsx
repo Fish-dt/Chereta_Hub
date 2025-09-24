@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function DepositSuccess() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // ✅ client-side only
   const [status, setStatus] = useState("Verifying...");
   const [loading, setLoading] = useState(true);
 
