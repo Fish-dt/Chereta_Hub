@@ -38,6 +38,8 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
     if (session) {
       console.log('User already signed in, skipping Google One Tap')
       hasRunRef.current = true
+      // Clear dismissal flag when user is logged in (so it shows again after logout)
+      localStorage.removeItem('google-signin-popup-dismissed')
       // Cancel any existing Google One Tap prompts
       if (window.google?.accounts?.id) {
         window.google.accounts.id.cancel()
@@ -91,21 +93,26 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
               const payload = JSON.parse(atob(response.credential.split('.')[1]))
               console.log('Parsed Google One Tap payload:', payload.email)
               
-              // Instead of trying to use the JWT directly, let's trigger the normal Google OAuth flow
-              // This will use the same OAuth configuration that works for your login page
+              // Store the credential temporarily and trigger a custom sign-in
+              sessionStorage.setItem('google-one-tap-credential', response.credential)
+              
+              // Trigger NextAuth sign-in with a special flag
               const result = await signIn("google", {
                 callbackUrl: "/",
                 redirect: false,
-                // Use the email from the JWT as a login hint to pre-fill the account
-                login_hint: payload.email
+                // Add a flag to indicate this is from One Tap
+                oneTap: true,
+                credential: response.credential
               })
 
               if (result?.ok) {
-                console.log('Google One Tap triggered normal OAuth flow successfully')
+                console.log('Google One Tap authentication successful')
+                // Clear the stored credential
+                sessionStorage.removeItem('google-one-tap-credential')
                 // Refresh the page to update the session
                 window.location.reload()
               } else {
-                console.error('Google One Tap OAuth flow failed:', result?.error)
+                console.error('Google One Tap authentication failed:', result?.error)
               }
               
               // Only cancel after successful sign in or if there's an error
@@ -214,6 +221,11 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
       } catch (error) {
         console.log('Error cancelling Google One Tap:', error)
       }
+    } else if (!session && hasRunRef.current) {
+      // Reset the hasRunRef when user logs out so popup can show again
+      console.log('User logged out, resetting Google One Tap state')
+      hasRunRef.current = false
+      initializedRef.current = false
     }
   }, [session])
 

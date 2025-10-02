@@ -90,12 +90,12 @@ async function getAuthOptions() {
     ],
 
     callbacks: {
-      async signIn({ user, account, profile, credentials }: { user: any; account: any; profile?: any; credentials?: any }) {
+      async signIn({ user, account, profile, credentials, query }: { user: any; account: any; profile?: any; credentials?: any; query?: any }) {
         // Handle Google One Tap JWT credential
-        if (credentials?.credential) {
+        if (query?.oneTap === 'true' && query?.credential) {
           try {
             // Decode the JWT token from Google One Tap
-            const decoded = jwt.decode(credentials.credential) as any
+            const decoded = jwt.decode(query.credential) as any
             
             if (!decoded || !decoded.email) {
               console.error('Invalid JWT token from Google One Tap')
@@ -158,7 +158,7 @@ async function getAuthOptions() {
                 expires_at: null,
                 token_type: null,
                 scope: null,
-                id_token: credentials.credential,
+                id_token: query.credential,
               })
             }
 
