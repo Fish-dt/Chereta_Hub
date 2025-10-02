@@ -115,7 +115,7 @@ export function AuctionCard({ auction }: AuctionCardProps) {
         </div>
 
         <CardContent className="p-4">
-          <h3 className={`font-semibold text-lg mb-2 line-clamp-2 ${language === "am" ? "font-amharic" : ""}`}>
+          <h3 className={`font-semibold text-lg mb-2 line-clamp-1 ${language === "am" ? "font-amharic" : ""}`}>
             {auction.title}
           </h3>
           {/* Hide description on list cards; show only on detail page */}

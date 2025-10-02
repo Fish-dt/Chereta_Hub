@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { AuctionCard } from "@/components/auction-card"
 import { AuctionFilters } from "@/components/auction-filters"
-import { AuctionsPageSkeleton } from "@/components/skeletons/auctions-page-skeleton"
+import { AuctionsGridSkeleton } from "@/components/skeletons/auctions-grid-skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -86,10 +86,6 @@ export default function AuctionsPage() {
     }
   }
 
-  if (loading) {
-    return <AuctionsPageSkeleton />
-  }
-
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -104,7 +100,7 @@ export default function AuctionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Filters Sidebar */}
+        {/* Filters Sidebar - Always visible */}
         <div className={`lg:w-64 ${showFilters ? "block" : "hidden lg:block"}`}>
           <AuctionFilters
             minPrice={minPrice}
@@ -165,7 +161,9 @@ export default function AuctionsPage() {
           </div>
 
           {/* Auction Grid */}
-          {auctions.length > 0 ? (
+          {loading ? (
+            <AuctionsGridSkeleton count={8} />
+          ) : auctions.length > 0 ? (
             <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
               {auctions.map((auction) => (
                 <AuctionCard key={auction._id} auction={auction} />

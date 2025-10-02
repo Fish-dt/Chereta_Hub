@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Head from "next/head"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
@@ -82,6 +83,11 @@ export default function AuctionDetailPage() {
       fetchAuction()
       fetchBids()
     }
+    
+    // Cleanup: reset title when component unmounts
+    return () => {
+      document.title = "CheretaHub"
+    }
   }, [params.id])
 
   useEffect(() => {
@@ -132,6 +138,10 @@ export default function AuctionDetailPage() {
 
       if (response.ok) {
         setAuction(data.auction)
+        // Update browser title with auction name
+        if (data.auction?.title) {
+          document.title = `${data.auction.title} - CheretaHub`
+        }
       } else {
         setError(data.error || "Failed to fetch auction")
       }
