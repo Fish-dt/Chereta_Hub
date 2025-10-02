@@ -1,23 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { X, Loader2, Gavel, User } from "lucide-react"
+import { useEffect, useRef } from "react"
 import { signIn, useSession } from "next-auth/react"
-import { useLanguage } from "@/contexts/language-context"
 
 interface GoogleSigninPopupProps {
   onClose?: () => void
-  delay?: number
-  dismissible?: boolean
-}
-
-interface GoogleAccount {
-  email: string
-  name: string
-  picture: string
 }
 
 // Declare Google APIs for TypeScript
@@ -28,254 +15,208 @@ declare global {
         id: {
           initialize: (config: any) => void
           prompt: (callback?: (notification: any) => void) => void
-          renderButton: (element: HTMLElement, config: any) => void
+          cancel: () => void
         }
       }
     }
   }
 }
 
-export function GoogleSigninPopup({ 
-  onClose, 
-  delay = 2000, 
-  dismissible = true 
-}: GoogleSigninPopupProps) {
+export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
   const { data: session } = useSession()
-  const { t, language } = useLanguage()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
-  const [hasShown, setHasShown] = useState(false)
-  const [googleAccounts, setGoogleAccounts] = useState<GoogleAccount[]>([])
-  const [isCheckingAccount, setIsCheckingAccount] = useState(true)
+  const initializedRef = useRef(false)
+  const scriptLoadedRef = useRef(false)
+  const hasRunRef = useRef(false)
 
-  // Check if user has dismissed popup permanently
   useEffect(() => {
+    // Prevent multiple runs of this effect
+    if (hasRunRef.current) {
+      return
+    }
+
+    // Don't initialize if user is already signed in
+    if (session) {
+      console.log('User already signed in, skipping Google One Tap')
+      hasRunRef.current = true
+      // Cancel any existing Google One Tap prompts
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.cancel()
+      }
+      return
+    }
+
+    // Check if user has dismissed popup permanently
     const dismissed = localStorage.getItem('google-signin-popup-dismissed')
     if (dismissed === 'true') {
-      setHasShown(true)
-      setIsCheckingAccount(false)
+      console.log('Google One Tap dismissed by user, skipping')
+      hasRunRef.current = true
+      return
     }
-  }, [])
 
-  // Check for existing Google accounts in browser
-  useEffect(() => {
-    const checkForGoogleAccounts = () => {
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID
-      
-      // If no client ID is available, use fallback simulation
-      if (!clientId) {
-        console.log('Google Client ID not found, using fallback simulation')
-        
-        // Simulate finding Google accounts for demo purposes
-        const hasVisitedBefore = localStorage.getItem('has-visited-before')
-        const shouldShowAccount = Math.random() > 0.3 // 70% chance to show account
-        
-        if (shouldShowAccount && !hasVisitedBefore) {
-          // Simulate finding Google accounts
-          setGoogleAccounts([
-            {
-              email: 'john.doe@gmail.com',
-              name: 'John Doe',
-              picture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'
-            },
-            {
-              email: 'jane.smith@gmail.com',
-              name: 'Jane Smith',
-              picture: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face'
-            }
-          ])
-          localStorage.setItem('has-visited-before', 'true')
-        }
-        
-        setIsCheckingAccount(false)
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    
+    if (!clientId) {
+      console.warn('Google Client ID not found. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID environment variable.')
+      hasRunRef.current = true
+      return
+    }
+
+    console.log('Initializing Google One Tap...')
+    hasRunRef.current = true
+
+    const initializeGoogleOneTap = () => {
+      // Prevent multiple initializations
+      if (initializedRef.current) {
+        console.log('Google One Tap already initialized, skipping')
         return
       }
 
-      // Use Google One Tap API to detect logged-in accounts
-      if (typeof window !== 'undefined' && window.google && window.google.accounts) {
-        // Google API is available
-        try {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: (response: any) => {
-              try {
-                const payload = JSON.parse(atob(response.credential.split('.')[1]))
-                setGoogleAccounts([{
-                  email: payload.email,
-                  name: payload.name,
-                  picture: payload.picture
-                }])
-              } catch (error) {
-                console.error('Error parsing Google response:', error)
-              }
-              setIsCheckingAccount(false)
-            },
-            auto_select: false,
-            cancel_on_tap_outside: false
-          })
+      if (!window.google?.accounts?.id) {
+        console.log('Google One Tap API not available yet')
+        return
+      }
 
-          // Try to prompt for account selection
-          window.google.accounts.id.prompt((notification: any) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              // No accounts available or user cancelled
-              setIsCheckingAccount(false)
-            }
-          })
-        } catch (error) {
-          console.error('Error initializing Google One Tap:', error)
-          setIsCheckingAccount(false)
-        }
-      } else {
-        // Fallback: Load Google API script
-        const script = document.createElement('script')
-        script.src = 'https://accounts.google.com/gsi/client'
-        script.async = true
-        script.defer = true
-        script.onload = () => {
-          if (window.google && window.google.accounts) {
+      try {
+        console.log('Initializing Google One Tap API...')
+        initializedRef.current = true
+
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          use_fedcm_for_prompt: false, // Disable FedCM to avoid Cloudflare/CORS issues
+          callback: async (response: any) => {
             try {
-              window.google.accounts.id.initialize({
-                client_id: clientId,
-                callback: (response: any) => {
-                  try {
-                    const payload = JSON.parse(atob(response.credential.split('.')[1]))
-                    setGoogleAccounts([{
-                      email: payload.email,
-                      name: payload.name,
-                      picture: payload.picture
-                    }])
-                  } catch (error) {
-                    console.error('Error parsing Google response:', error)
-                  }
-                  setIsCheckingAccount(false)
-                },
-                auto_select: false,
-                cancel_on_tap_outside: false
+              console.log('Google One Tap callback received')
+              
+              // Parse the JWT token
+              const payload = JSON.parse(atob(response.credential.split('.')[1]))
+              console.log('Parsed Google One Tap payload:', payload.email)
+              
+              // Instead of trying to use the JWT directly, let's trigger the normal Google OAuth flow
+              // This will use the same OAuth configuration that works for your login page
+              const result = await signIn("google", {
+                callbackUrl: "/",
+                redirect: false,
+                // Use the email from the JWT as a login hint to pre-fill the account
+                login_hint: payload.email
               })
 
-              window.google.accounts.id.prompt((notification: any) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                  setIsCheckingAccount(false)
-                }
-              })
+              if (result?.ok) {
+                console.log('Google One Tap triggered normal OAuth flow successfully')
+                // Refresh the page to update the session
+                window.location.reload()
+              } else {
+                console.error('Google One Tap OAuth flow failed:', result?.error)
+              }
+              
+              // Only cancel after successful sign in or if there's an error
+              if (window.google?.accounts?.id) {
+                window.google.accounts.id.cancel()
+              }
+              
+              // Call onClose if provided
+              onClose?.()
             } catch (error) {
-              console.error('Error initializing Google One Tap:', error)
-              setIsCheckingAccount(false)
+              console.error('Error processing Google One Tap response:', error)
+              // Cancel on error as well
+              if (window.google?.accounts?.id) {
+                window.google.accounts.id.cancel()
+              }
             }
-          } else {
-            setIsCheckingAccount(false)
-          }
-        }
-        script.onerror = () => {
-          console.error('Failed to load Google One Tap script')
-          setIsCheckingAccount(false)
-        }
-        document.head.appendChild(script)
+          },
+          auto_select: false,
+          cancel_on_tap_outside: false, // Prevent accidental dismissal
+          itp_support: true // Enable Intelligent Tracking Prevention support
+        })
+
+        console.log('Showing Google One Tap prompt...')
+        // Add a small delay before showing the prompt to avoid conflicts
+        setTimeout(() => {
+          // Show the One Tap prompt
+          window.google.accounts.id.prompt((notification: any) => {
+            console.log('Google One Tap notification:', notification)
+            if (notification.isNotDisplayed()) {
+              console.log('Google One Tap not displayed:', notification.getNotDisplayedReason())
+              initializedRef.current = false
+            } else if (notification.isSkippedMoment()) {
+              console.log('Google One Tap skipped:', notification.getSkippedReason())
+              initializedRef.current = false
+            } else if (notification.isDismissedMoment()) {
+              console.log('Google One Tap dismissed:', notification.getDismissedReason())
+              initializedRef.current = false
+            }
+          })
+        }, 1000) // 1 second delay
+      } catch (error) {
+        console.error('Error initializing Google One Tap:', error)
+        initializedRef.current = false
       }
     }
 
-    if (!session && !hasShown) {
-      checkForGoogleAccounts()
-    } else {
-      setIsCheckingAccount(false)
+    const loadGoogleScript = () => {
+      if (scriptLoadedRef.current) {
+        console.log('Google script already loaded, initializing...')
+        initializeGoogleOneTap()
+        return
+      }
+
+      // Check if script is already loaded
+      const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
+      if (existingScript) {
+        console.log('Google script already exists in DOM, marking as loaded...')
+        scriptLoadedRef.current = true
+        // Wait a bit for the script to be ready
+        setTimeout(initializeGoogleOneTap, 200)
+        return
+      }
+
+      console.log('Loading Google One Tap script...')
+      const script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      
+      script.onload = () => {
+        console.log('Google One Tap script loaded successfully')
+        scriptLoadedRef.current = true
+        // Add a small delay to ensure the script is fully initialized
+        setTimeout(initializeGoogleOneTap, 200)
+      }
+      
+      script.onerror = () => {
+        console.error('Failed to load Google One Tap script')
+      }
+      
+      document.head.appendChild(script)
     }
-  }, [session, hasShown])
 
-  // Auto-show popup after delay for non-authenticated users
+    // Load the Google script and initialize
+    loadGoogleScript()
+
+    // Cleanup function
+    return () => {
+      if (window.google?.accounts?.id && initializedRef.current) {
+        try {
+          window.google.accounts.id.cancel()
+        } catch (error) {
+          console.log('Error cancelling Google One Tap during cleanup:', error)
+        }
+        initializedRef.current = false
+      }
+    }
+  }, []) // Empty dependency array to run only once
+
+  // Separate effect to handle session changes
   useEffect(() => {
-    if (session || hasShown || isCheckingAccount) return
-
-    const timer = setTimeout(() => {
-      setIsVisible(true)
-      setHasShown(true)
-    }, delay)
-
-    return () => clearTimeout(timer)
-  }, [session, hasShown, delay, isCheckingAccount])
-
-  // Hide popup if user signs in
-  useEffect(() => {
-    if (session) {
-      setIsVisible(false)
+    if (session && window.google?.accounts?.id && initializedRef.current) {
+      console.log('User signed in, cancelling Google One Tap')
+      try {
+        window.google.accounts.id.cancel()
+      } catch (error) {
+        console.log('Error cancelling Google One Tap:', error)
+      }
     }
   }, [session])
 
-  const handleGoogleSignIn = async (email?: string) => {
-    setIsLoading(true)
-    try {
-      await signIn("google", { 
-        callbackUrl: "/",
-        redirect: false,
-        ...(email && { login_hint: email })
-      })
-    } catch (error) {
-      console.error("Google sign in error:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleClose = () => {
-    setIsVisible(false)
-    if (dismissible) {
-      localStorage.setItem('google-signin-popup-dismissed', 'true')
-    }
-    onClose?.()
-  }
-
-  // Don't render if user is already signed in or popup is not visible
-  if (session || !isVisible || isCheckingAccount) {
-    return null
-  }
-
-  return (
-    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-5 duration-300">
-      <Card className="w-72 shadow-lg border border-gray-200 bg-white">
-        <CardContent className="p-3">
-          {/* Close Button */}
-          {dismissible && (
-            <div className="flex justify-end mb-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 text-gray-400 hover:text-gray-600"
-                onClick={handleClose}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-
-          {/* Google Accounts */}
-          {googleAccounts.length > 0 ? (
-            <div className="space-y-1">
-              {googleAccounts.map((account, index) => (
-                <div 
-                  key={account.email}
-                  className="flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer transition-colors rounded"
-                  onClick={() => handleGoogleSignIn(account.email)}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={account.picture} alt={account.name} />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium text-sm text-gray-900">{account.name}</div>
-                    <div className="text-xs text-gray-500">{account.email}</div>
-                  </div>
-                  {isLoading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-2">
-              <div className="text-xs text-gray-500 text-center">No Google accounts found</div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
+  // This component doesn't render any UI - Google One Tap handles the UI
+  return null
 }
