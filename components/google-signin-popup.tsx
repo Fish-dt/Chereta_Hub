@@ -93,26 +93,33 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
               const payload = JSON.parse(atob(response.credential.split('.')[1]))
               console.log('Parsed Google One Tap payload:', payload.email)
               
-              // Store the credential temporarily and trigger a custom sign-in
-              sessionStorage.setItem('google-one-tap-credential', response.credential)
-              
-              // Trigger NextAuth sign-in with a special flag
-              const result = await signIn("google", {
-                callbackUrl: "/",
-                redirect: false,
-                // Add a flag to indicate this is from One Tap
-                oneTap: true,
-                credential: response.credential
-              })
+              // Instead of using NextAuth's signIn (which causes redirects), 
+              // let's create the session directly using the JWT credential
+              try {
+                const authResponse = await fetch('/api/auth/google-one-tap', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    credential: response.credential
+                  })
+                })
 
-              if (result?.ok) {
-                console.log('Google One Tap authentication successful')
-                // Clear the stored credential
-                sessionStorage.removeItem('google-one-tap-credential')
-                // Refresh the page to update the session
-                window.location.reload()
-              } else {
-                console.error('Google One Tap authentication failed:', result?.error)
+                if (authResponse.ok) {
+                  const result = await authResponse.json()
+                  console.log('Google One Tap authentication successful:', result.user.email)
+                  
+                  // Set the NextAuth session token cookie
+                  document.cookie = `next-auth.session-token=${result.token}; path=/; max-age=${60 * 60 * 24 * 30}; secure; samesite=lax` // 30 days
+                  
+                  // Refresh the page to update the session
+                  window.location.reload()
+                } else {
+                  console.error('Google One Tap authentication failed')
+                }
+              } catch (error) {
+                console.error('Error authenticating with Google One Tap:', error)
               }
               
               // Only cancel after successful sign in or if there's an error
