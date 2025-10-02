@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +42,7 @@ interface UserStats {
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const { t, language } = useLanguage()
 
@@ -70,6 +71,20 @@ export default function ProfilePage() {
     fetchProfile()
     fetchStats()
   }, [session, router])
+
+  useEffect(() => {
+    const deposit = searchParams.get("deposit")
+    if (deposit === "success") {
+      setSuccess("Deposit successful!")
+      // Refresh stats to reflect new balance
+      fetchStats()
+      // Clean the URL after showing message
+      const url = new URL(window.location.href)
+      url.searchParams.delete("deposit")
+      url.searchParams.delete("tx_ref")
+      window.history.replaceState({}, "", url.toString())
+    }
+  }, [searchParams])
 
   const fetchProfile = async () => {
     try {
@@ -425,9 +440,7 @@ export default function ProfilePage() {
                 {/* Buttons */}
                 <div className="flex gap-3">
                 <DepositDialog
-                  email={session?.user?.email || "fishdesta70@gmmail.com"}
-                  firstName={profile?.firstName || "Fish"}
-                  lastName={profile?.lastName || "Wanore"}
+                  email={session?.user?.email || "user@example.com"}
                 />
 
                   <Button className="flex-1 md:flex-none">

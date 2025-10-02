@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const { amount, phone } = await req.json()
+    const { amount } = await req.json()
     if (!amount || Number(amount) <= 0) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
     }
@@ -24,10 +24,10 @@ export async function POST(req: Request) {
       email: session.user.email,
       first_name: session.user.name?.split(" ")[0] || "User",
       last_name: session.user.name?.split(" ")[1] || "Unknown",
-      phone_number: phone || undefined,  // optional
+      // Use account email from session per spec
       tx_ref,
       callback_url: `${origin}/api/chapa/callback`,
-      return_url: `${origin}/deposit/success?tx_ref=${tx_ref}`,
+      return_url: `${origin}/profile?deposit=success&tx_ref=${tx_ref}`,
       "customization[title]": "Deposit Balance",
       "customization[description]": "Add funds to your account",
       "meta[hide_receipt]": "true",

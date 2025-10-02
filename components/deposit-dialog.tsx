@@ -5,10 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-export function DepositDialog({ email, firstName, lastName }: { email: string; firstName: string; lastName: string }) {
+export function DepositDialog({ email }: { email: string }) {
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState("")
-  const [phone, setPhone] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleDeposit = async () => {
@@ -23,15 +22,7 @@ export function DepositDialog({ email, firstName, lastName }: { email: string; f
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount,
-          currency: "ETB",
-          email,
-          first_name: firstName,
-          last_name: lastName,
-          phone_number: phone || undefined,
-          tx_ref: `tx-${Date.now()}`,
-          callback_url: window.location.origin + "/api/chapa/callback",
-          return_url: window.location.origin + "/deposit/success",
+          amount
         }),
       })
 
@@ -67,12 +58,7 @@ export function DepositDialog({ email, firstName, lastName }: { email: string; f
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        <Input
-          type="text"
-          placeholder="Phone number (optional)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
+        {/* Phone removed per spec; only amount is required in form */}
 
         <DialogFooter>
           <Button onClick={handleDeposit} disabled={loading || !amount}>
