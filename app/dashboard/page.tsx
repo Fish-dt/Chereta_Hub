@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,70 +11,14 @@ import Link from "next/link"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 
-// Mock data
-const userStats = {
-  activeBids: 12,
-  watchingItems: 34,
-  totalSpent: 15420,
-  itemsSold: 8,
-}
-
-const activeBids = [
-  {
-    id: "1",
-    title: "Vintage Camera Collection",
-    currentBid: 450,
-    yourBid: 425,
-    endTime: "2h 15m",
-    image: "/placeholder.svg?height=80&width=80",
-    status: "winning",
-  },
-  {
-    id: "2",
-    title: "Antique Pocket Watch",
-    currentBid: 1200,
-    yourBid: 1100,
-    endTime: "1d 4h",
-    image: "/placeholder.svg?height=80&width=80",
-    status: "outbid",
-  },
-]
-
-const watchingItems = [
-  {
-    id: "3",
-    title: "Original Oil Painting",
-    currentBid: 2500,
-    endTime: "3d 12h",
-    image: "/placeholder.svg?height=80&width=80",
-    bidCount: 15,
-  },
-  {
-    id: "4",
-    title: "Rare Book Collection",
-    currentBid: 800,
-    endTime: "5d 8h",
-    image: "/placeholder.svg?height=80&width=80",
-    bidCount: 8,
-  },
-]
-
-const sellingItems = [
-  {
-    id: "5",
-    title: "Vintage Guitar",
-    currentBid: 1800,
-    startingBid: 1200,
-    endTime: "2d 6h",
-    image: "/placeholder.svg?height=80&width=80",
-    bidCount: 23,
-    watchers: 45,
-  },
-]
-
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [stats, setStats] = useState<{ activeBids: number; watchingItems: number; totalSpent: number; itemsSold: number } | null>(null)
+  const [activeBids, setActiveBids] = useState<any[]>([])
+  const [watchingItems, setWatchingItems] = useState<any[]>([])
+  const [sellingItems, setSellingItems] = useState<any[]>([])
+  const [loadingData, setLoadingData] = useState<boolean>(true)
 
   useEffect(() => {
     if (status === "loading") return
@@ -82,6 +26,30 @@ export default function DashboardPage() {
       router.push("/auth/login?callbackUrl=/dashboard")
     }
   }, [session, status, router])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!session) return
+      try {
+        setLoadingData(true)
+        const res = await fetch("/api/user/dashboard", { cache: "no-store" })
+        if (!res.ok) {
+          throw new Error("Failed to load dashboard data")
+        }
+        const data = await res.json()
+        setStats(data.stats)
+        setActiveBids(Array.isArray(data.activeBids) ? data.activeBids : [])
+        setWatchingItems(Array.isArray(data.watchingItems) ? data.watchingItems : [])
+        setSellingItems(Array.isArray(data.sellingItems) ? data.sellingItems : [])
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e)
+      } finally {
+        setLoadingData(false)
+      }
+    }
+    fetchData()
+  }, [session])
 
   if (status === "loading") {
     return (
@@ -114,7 +82,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Bids</p>
-                <p className="text-2xl font-bold">{userStats.activeBids}</p>
+                <p className="text-2xl font-bold">{stats?.activeBids ?? 0}</p>
               </div>
               <Gavel className="h-8 w-8 text-blue-600" />
             </div>
@@ -126,7 +94,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Watching</p>
-                <p className="text-2xl font-bold">{userStats.watchingItems}</p>
+                <p className="text-2xl font-bold">{stats?.watchingItems ?? 0}</p>
               </div>
               <Eye className="h-8 w-8 text-green-600" />
             </div>
@@ -138,7 +106,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Spent</p>
-                <p className="text-2xl font-bold">${userStats.totalSpent.toLocaleString()}</p>
+                <p className="text-2xl font-bold">${(stats?.totalSpent ?? 0).toLocaleString()}</p>
               </div>
               <DollarSign className="h-8 w-8 text-purple-600" />
             </div>
@@ -150,7 +118,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Items Sold</p>
-                <p className="text-2xl font-bold">{userStats.itemsSold}</p>
+                <p className="text-2xl font-bold">{stats?.itemsSold ?? 0}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-orange-600" />
             </div>
@@ -175,8 +143,12 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activeBids.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                {loadingData && activeBids.length === 0 ? (
+                  <p className="text-sm text-gray-500">Loading your active bids...</p>
+                ) : activeBids.length === 0 ? (
+                  <p className="text-sm text-gray-500">You have no active bids.</p>
+                ) : activeBids.map((item) => (
+                  <div key={(item.auctionId as string) || ""} className="flex items-center gap-4 p-4 border rounded-lg">
                     <Image
                       src={item.image || "/placeholder.svg"}
                       alt={item.title}
@@ -187,20 +159,20 @@ export default function DashboardPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold">{item.title}</h3>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <span>Current: ${item.currentBid}</span>
-                        <span>Your bid: ${item.yourBid}</span>
+                        <span>Current: ${item.currentBid ?? 0}</span>
+                        <span>Your bid: ${item.yourBid ?? 0}</span>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {item.endTime}
+                          {new Date(item.endTime).toLocaleString()}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={item.status === "winning" ? "default" : "destructive"}>
-                        {item.status === "winning" ? "Winning" : "Outbid"}
+                      <Badge variant={(item.yourBid ?? 0) >= (item.currentBid ?? 0) ? "default" : "destructive"}>
+                        {(item.yourBid ?? 0) >= (item.currentBid ?? 0) ? "Winning" : "Outbid"}
                       </Badge>
                       <Button size="sm" asChild>
-                        <Link href={`/auction/${item.id}`}>View</Link>
+                        <Link href={`/auction/${item.auctionId}`}>View</Link>
                       </Button>
                     </div>
                   </div>
@@ -218,8 +190,12 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {watchingItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                {loadingData && watchingItems.length === 0 ? (
+                  <p className="text-sm text-gray-500">Loading your watchlist...</p>
+                ) : watchingItems.length === 0 ? (
+                  <p className="text-sm text-gray-500">Your watchlist is empty.</p>
+                ) : watchingItems.map((item) => (
+                  <div key={(item.auctionId as string) || ""} className="flex items-center gap-4 p-4 border rounded-lg">
                     <Image
                       src={item.image || "/placeholder.svg"}
                       alt={item.title}
@@ -230,17 +206,17 @@ export default function DashboardPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold">{item.title}</h3>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <span>Current bid: ${item.currentBid}</span>
-                        <span>{item.bidCount} bids</span>
+                        <span>Current bid: ${item.currentBid ?? 0}</span>
+                        <span>{item.bidCount ?? 0} bids</span>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {item.endTime}
+                          {new Date(item.endTime).toLocaleString()}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" asChild>
-                        <Link href={`/auction/${item.id}`}>Place Bid</Link>
+                        <Link href={`/auction/${item.auctionId}`}>Place Bid</Link>
                       </Button>
                     </div>
                   </div>
@@ -266,8 +242,12 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {sellingItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                {loadingData && sellingItems.length === 0 ? (
+                  <p className="text-sm text-gray-500">Loading your listings...</p>
+                ) : sellingItems.length === 0 ? (
+                  <p className="text-sm text-gray-500">You have no active listings.</p>
+                ) : sellingItems.map((item) => (
+                  <div key={(item.auctionId as string) || ""} className="flex items-center gap-4 p-4 border rounded-lg">
                     <Image
                       src={item.image || "/placeholder.svg"}
                       alt={item.title}
@@ -278,19 +258,19 @@ export default function DashboardPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold">{item.title}</h3>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <span>Current: ${item.currentBid}</span>
-                        <span>Starting: ${item.startingBid}</span>
-                        <span>{item.bidCount} bids</span>
-                        <span>{item.watchers} watching</span>
+                        <span>Current: ${item.currentBid ?? 0}</span>
+                        <span>Starting: ${item.startingBid ?? 0}</span>
+                        <span>{item.bidCount ?? 0} bids</span>
+                        {typeof item.watchers === "number" && <span>{item.watchers} watching</span>}
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {item.endTime}
+                          {new Date(item.endTime).toLocaleString()}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="outline" asChild>
-                        <Link href={`/auction/${item.id}`}>View</Link>
+                        <Link href={`/auction/${item.auctionId}`}>View</Link>
                       </Button>
                       <Button size="sm" variant="ghost">
                         <MoreHorizontal className="h-4 w-4" />
