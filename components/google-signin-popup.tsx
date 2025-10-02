@@ -27,6 +27,8 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
   const initializedRef = useRef(false)
   const scriptLoadedRef = useRef(false)
   const hasRunRef = useRef(false)
+  const promptInFlightRef = useRef(false)
+  const attemptedFallbackRef = useRef(false)
 
   useEffect(() => {
     // Prevent multiple runs of this effect
@@ -66,7 +68,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
     console.log('Initializing Google One Tap...')
     hasRunRef.current = true
 
-    const initializeGoogleOneTap = () => {
+    const initializeGoogleOneTap = (useFedcm: boolean = true) => {
       // Prevent multiple initializations
       if (initializedRef.current) {
         console.log('Google One Tap already initialized, skipping')
@@ -84,7 +86,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
 
         window.google.accounts.id.initialize({
           client_id: clientId,
-          use_fedcm_for_prompt: false, // Disable FedCM to avoid Cloudflare/CORS issues
+          use_fedcm_for_prompt: useFedcm,
           callback: async (response: any) => {
             try {
               console.log('Google One Tap callback received')
@@ -126,6 +128,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
               if (window.google?.accounts?.id) {
                 window.google.accounts.id.cancel()
               }
+              promptInFlightRef.current = false
               
               // Call onClose if provided
               onClose?.()
@@ -135,6 +138,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
               if (window.google?.accounts?.id) {
                 window.google.accounts.id.cancel()
               }
+              promptInFlightRef.current = false
             }
           },
           auto_select: false,
@@ -146,18 +150,43 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
         // Add a small delay before showing the prompt to avoid conflicts
         setTimeout(() => {
           // Show the One Tap prompt
+          if (promptInFlightRef.current) {
+            console.log('Google One Tap prompt already in flight, skipping new prompt')
+            return
+          }
+          promptInFlightRef.current = true
+
           window.google.accounts.id.prompt((notification: any) => {
             console.log('Google One Tap notification:', notification)
-            if (notification.isNotDisplayed()) {
-              console.log('Google One Tap not displayed:', notification.getNotDisplayedReason())
-              initializedRef.current = false
-            } else if (notification.isSkippedMoment()) {
-              console.log('Google One Tap skipped:', notification.getSkippedReason())
-              initializedRef.current = false
-            } else if (notification.isDismissedMoment()) {
-              console.log('Google One Tap dismissed:', notification.getDismissedReason())
-              initializedRef.current = false
+            const moment = notification?.getMomentType?.()
+            if (moment === 'display') {
+              console.log('Google One Tap displayed')
+              return
             }
+            if (moment === 'skipped') {
+              const skippedReason = notification?.getSkippedReason?.()
+              console.log('Google One Tap skipped:', skippedReason)
+              initializedRef.current = false
+              promptInFlightRef.current = false
+              // Dev fallback: if FedCM is disabled or unknown reason, retry without FedCM once
+              const reasonStr = String(skippedReason || '')
+              if (!attemptedFallbackRef.current && (reasonStr === 'unknown_reason' || reasonStr.includes('user_opt_out') || reasonStr.includes('unavailable'))) {
+                attemptedFallbackRef.current = true
+                try {
+                  window.google.accounts.id.cancel()
+                } catch {}
+                // small delay before re-initializing without FedCM
+                setTimeout(() => initializeGoogleOneTap(false), 200)
+              }
+              return
+            }
+            if (moment === 'dismissed') {
+              console.log('Google One Tap dismissed:', notification?.getDismissedReason?.())
+              initializedRef.current = false
+              promptInFlightRef.current = false
+              return
+            }
+            // No legacy helpers; rely solely on FedCM moments
           })
         }, 1000) // 1 second delay
       } catch (error) {
@@ -169,7 +198,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
     const loadGoogleScript = () => {
       if (scriptLoadedRef.current) {
         console.log('Google script already loaded, initializing...')
-        initializeGoogleOneTap()
+        initializeGoogleOneTap(true)
         return
       }
 
@@ -179,7 +208,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
         console.log('Google script already exists in DOM, marking as loaded...')
         scriptLoadedRef.current = true
         // Wait a bit for the script to be ready
-        setTimeout(initializeGoogleOneTap, 200)
+        setTimeout(() => initializeGoogleOneTap(true), 200)
         return
       }
 
@@ -193,7 +222,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
         console.log('Google One Tap script loaded successfully')
         scriptLoadedRef.current = true
         // Add a small delay to ensure the script is fully initialized
-        setTimeout(initializeGoogleOneTap, 200)
+        setTimeout(() => initializeGoogleOneTap(true), 200)
       }
       
       script.onerror = () => {
@@ -216,6 +245,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
         }
         initializedRef.current = false
       }
+      promptInFlightRef.current = false
     }
   }, []) // Empty dependency array to run only once
 
@@ -228,11 +258,13 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
       } catch (error) {
         console.log('Error cancelling Google One Tap:', error)
       }
+      promptInFlightRef.current = false
     } else if (!session && hasRunRef.current) {
       // Reset the hasRunRef when user logs out so popup can show again
       console.log('User logged out, resetting Google One Tap state')
       hasRunRef.current = false
       initializedRef.current = false
+      promptInFlightRef.current = false
     }
   }, [session])
 
