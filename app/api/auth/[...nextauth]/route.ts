@@ -29,6 +29,94 @@ async function getAuthOptions() {
   return {
     providers: [
       CredentialsProvider({
+        id: "google-one-tap",
+        name: "Google One Tap",
+        credentials: {
+          id_token: { label: "Google ID Token", type: "text" },
+        },
+        async authorize(credentials) {
+          try {
+            const idToken = credentials?.id_token
+            if (!idToken) throw new Error("Missing Google ID token")
+
+            // Verify the ID token with Google
+            const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`)
+            if (!verifyRes.ok) {
+              throw new Error("Invalid Google ID token")
+            }
+            const decoded: any = await verifyRes.json()
+
+            if (!decoded?.email) throw new Error("Google token missing email")
+
+            const { connectToDatabase } = await import("@/lib/mongodb")
+            const { db } = await connectToDatabase()
+
+            // Upsert user
+            let existingUser = await db.collection("users").findOne({ email: decoded.email })
+            if (!existingUser) {
+              const result = await db.collection("users").insertOne({
+                email: decoded.email,
+                firstName: decoded.given_name || decoded.name?.split(" ")[0] || "",
+                lastName: decoded.family_name || decoded.name?.split(" ").slice(1).join(" ") || "",
+                avatar: decoded.picture || null,
+                role: "user",
+                rating: 0,
+                totalSales: 0,
+                memberSince: new Date(),
+                isVerified: true,
+                provider: "google",
+                googleId: decoded.sub,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              })
+              existingUser = { _id: result.insertedId }
+            } else {
+              await db.collection("users").updateOne(
+                { email: decoded.email },
+                {
+                  $set: {
+                    provider: "google",
+                    googleId: decoded.sub,
+                    avatar: decoded.picture || existingUser.avatar || null,
+                    updatedAt: new Date(),
+                  },
+                }
+              )
+            }
+
+            // Upsert account
+            const existingAccount = await db.collection("accounts").findOne({
+              provider: "google",
+              providerAccountId: decoded.sub,
+            })
+            if (!existingAccount) {
+              await db.collection("accounts").insertOne({
+                userId: existingUser?._id,
+                type: "oauth",
+                provider: "google",
+                providerAccountId: decoded.sub,
+                id_token: idToken,
+                access_token: null,
+                refresh_token: null,
+                expires_at: null,
+                token_type: null,
+                scope: null,
+              })
+            }
+
+            return {
+              id: existingUser?._id.toString(),
+              email: decoded.email,
+              name: decoded.name,
+              image: decoded.picture,
+            } as any
+          } catch (e) {
+            console.error("One Tap authorize error:", e)
+            return null
+          }
+        },
+      }),
+      CredentialsProvider({
         name: "Credentials",
         credentials: {
           email: { label: "Email", type: "text" },

@@ -23,7 +23,7 @@ declare global {
 }
 
 export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const initializedRef = useRef(false)
   const scriptLoadedRef = useRef(false)
   const hasRunRef = useRef(false)
@@ -36,8 +36,13 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
       return
     }
 
+    // Wait for session status to resolve; only proceed when unauthenticated
+    if (status === 'loading') {
+      return
+    }
+
     // Don't initialize if user is already signed in
-    if (session) {
+    if (status === 'authenticated' || session) {
       console.log('User already signed in, skipping Google One Tap')
       hasRunRef.current = true
       // Clear dismissal flag when user is logged in (so it shows again after logout)
@@ -98,30 +103,18 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
               // Instead of using NextAuth's signIn (which causes redirects), 
               // let's create the session directly using the JWT credential
               try {
-                const authResponse = await fetch('/api/auth/google-one-tap', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    credential: response.credential
-                  })
+                const signInResult = await signIn('google-one-tap', {
+                  redirect: false,
+                  id_token: response.credential,
                 })
-
-                if (authResponse.ok) {
-                  const result = await authResponse.json()
-                  console.log('Google One Tap authentication successful:', result.user.email)
-                  
-                  // Set the NextAuth session token cookie
-                  document.cookie = `next-auth.session-token=${result.token}; path=/; max-age=${60 * 60 * 24 * 30}; secure; samesite=lax` // 30 days
-                  
-                  // Refresh the page to update the session
+                if (signInResult?.ok) {
+                  console.log('Google One Tap authentication successful')
                   window.location.reload()
                 } else {
-                  console.error('Google One Tap authentication failed')
+                  console.error('Google One Tap signIn failed', signInResult?.error)
                 }
               } catch (error) {
-                console.error('Error authenticating with Google One Tap:', error)
+                console.error('Error authenticating with Google One Tap via NextAuth:', error)
               }
               
               // Only cancel after successful sign in or if there's an error
@@ -247,7 +240,7 @@ export function GoogleSigninPopup({ onClose }: GoogleSigninPopupProps) {
       }
       promptInFlightRef.current = false
     }
-  }, []) // Empty dependency array to run only once
+  }, [status])
 
   // Separate effect to handle session changes
   useEffect(() => {
