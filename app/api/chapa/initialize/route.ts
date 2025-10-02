@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { getAuthOptions } from "@/lib/auth-config"
-import fetch from "node-fetch"
+
+export const runtime = "nodejs"
 
 export async function POST(req: Request) {
   try {
@@ -16,6 +17,7 @@ export async function POST(req: Request) {
     }
 
     const tx_ref = `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+    const origin = new URL(req.url).origin
     const payload = {
       amount: String(amount),
       currency: "ETB",
@@ -24,8 +26,8 @@ export async function POST(req: Request) {
       last_name: session.user.name?.split(" ")[1] || "Unknown",
       phone_number: phone || undefined,  // optional
       tx_ref,
-      callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/chapa/callback`,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/deposit/success?tx_ref=${tx_ref}`,
+      callback_url: `${origin}/api/chapa/callback`,
+      return_url: `${origin}/deposit/success?tx_ref=${tx_ref}`,
       "customization[title]": "Deposit Balance",
       "customization[description]": "Add funds to your account",
       "meta[hide_receipt]": "true",
