@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { AuctionCard } from "@/components/auction-card"
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { AuctionCardSkeleton } from "@/components/skeletons/auction-card-skeleton"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/language-context"
 
@@ -60,8 +61,12 @@ export function FeaturedAuctions() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="flex gap-6 overflow-hidden pl-2 pr-2">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="min-w-[260px] max-w-[260px]">
+                <AuctionCardSkeleton />
+              </div>
+            ))}
           </div>
         ) : auctions.length > 0 ? (
           <>

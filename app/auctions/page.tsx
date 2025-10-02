@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { AuctionCard } from "@/components/auction-card"
 import { AuctionFilters } from "@/components/auction-filters"
+import { AuctionsPageSkeleton } from "@/components/skeletons/auctions-page-skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -86,16 +87,7 @@ export default function AuctionsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className={language === "am" ? "font-amharic" : ""}>{t("common.loading")}</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <AuctionsPageSkeleton />
   }
 
   if (error) {
