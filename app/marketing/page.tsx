@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,82 +9,63 @@ import { TrendingUp, Mail, Star, Megaphone, Plus, MoreHorizontal } from "lucide-
 import Image from "next/image"
 import Link from "next/link"
 
-// Mock stats
-const marketingStats = {
-  activePromotions: 5,
-  featuredAuctions: 12,
-  newslettersSent: 34,
-  adRevenue: 15420,
+type MarketingStats = {
+  campaigns: {
+    total: number
+    active: number
+    paused: number
+    completed: number
+    totalBudget: number
+    activeBudget: number
+  }
+  users: {
+    total: number
+    verified: number
+    newThisMonth: number
+    verificationRate: number
+  }
+  auctions: {
+    total: number
+    active: number
+    completed: number
+    totalRevenue: number
+  }
 }
 
-// Mock data
-const promotions = [
-  {
-    id: "1",
-    title: "Summer Sale Campaign",
-    reach: "12,500 users",
-    status: "active",
-    image: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "2",
-    title: "Collector’s Week Promo",
-    reach: "8,300 users",
-    status: "scheduled",
-    image: "/placeholder.svg?height=80&width=80",
-  },
-]
-
-const featuredAuctions = [
-  {
-    id: "3",
-    title: "Vintage Car Auction",
-    views: 5200,
-    bids: 45,
-    image: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "4",
-    title: "Rare Coin Collection",
-    views: 2100,
-    bids: 18,
-    image: "/placeholder.svg?height=80&width=80",
-  },
-]
-
-const newsletters = [
-  {
-    id: "5",
-    subject: "Weekly Auction Highlights",
-    sentTo: "15,000 subscribers",
-    status: "sent",
-  },
-  {
-    id: "6",
-    subject: "Upcoming Rare Item Auction",
-    sentTo: "14,200 subscribers",
-    status: "draft",
-  },
-]
-
-const advertisements = [
-  {
-    id: "7",
-    platform: "Google Ads",
-    spend: "$1,200",
-    clicks: 320,
-    conversions: 45,
-  },
-  {
-    id: "8",
-    platform: "Facebook Ads",
-    spend: "$850",
-    clicks: 210,
-    conversions: 28,
-  },
-]
+type Campaign = {
+  _id: string
+  title: string
+  description: string
+  budget: number
+  status: string
+  startDate: string
+  endDate: string
+  targetAudience: string
+  createdAt: string
+}
 
 export default function MarketingManagerDashboard() {
+  const [stats, setStats] = useState<MarketingStats | null>(null)
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/marketing", { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to load marketing data")
+        const data = await res.json()
+        setStats(data.stats)
+        setCampaigns(data.data || [])
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -98,8 +80,8 @@ export default function MarketingManagerDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Promotions</p>
-                <p className="text-2xl font-bold">{marketingStats.activePromotions}</p>
+                <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
+                <p className="text-2xl font-bold">{stats?.campaigns?.active || 0}</p>
               </div>
               <Megaphone className="h-8 w-8 text-blue-600" />
             </div>
@@ -110,8 +92,8 @@ export default function MarketingManagerDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Featured Auctions</p>
-                <p className="text-2xl font-bold">{marketingStats.featuredAuctions}</p>
+                <p className="text-sm font-medium text-gray-600">Total Users</p>
+                <p className="text-2xl font-bold">{stats?.users?.total || 0}</p>
               </div>
               <Star className="h-8 w-8 text-yellow-500" />
             </div>
@@ -122,8 +104,8 @@ export default function MarketingManagerDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Newsletters Sent</p>
-                <p className="text-2xl font-bold">{marketingStats.newslettersSent}</p>
+                <p className="text-sm font-medium text-gray-600">New This Month</p>
+                <p className="text-2xl font-bold">{stats?.users?.newThisMonth || 0}</p>
               </div>
               <Mail className="h-8 w-8 text-green-600" />
             </div>
@@ -134,8 +116,8 @@ export default function MarketingManagerDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Ad Revenue</p>
-                <p className="text-2xl font-bold">${marketingStats.adRevenue.toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold">${stats?.auctions?.totalRevenue?.toLocaleString() || 0}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
             </div>
@@ -166,22 +148,27 @@ export default function MarketingManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {promotions.map((promo) => (
-                  <div key={promo.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                    <Image
-                      src={promo.image}
-                      alt={promo.title}
-                      width={80}
-                      height={80}
-                      className="rounded-lg object-cover"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{promo.title}</h3>
-                      <p className="text-sm text-gray-600">Reach: {promo.reach}</p>
+                {loading ? (
+                  <p className="text-sm text-gray-500">Loading campaigns...</p>
+                ) : campaigns.length === 0 ? (
+                  <p className="text-sm text-gray-500">No campaigns available.</p>
+                ) : (
+                  campaigns.map((campaign) => (
+                    <div key={campaign._id} className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Megaphone className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{campaign.title}</h3>
+                        <p className="text-sm text-gray-600">{campaign.description}</p>
+                        <p className="text-sm text-gray-500">Budget: ${campaign.budget} • Target: {campaign.targetAudience}</p>
+                      </div>
+                      <Badge variant={campaign.status === "active" ? "default" : campaign.status === "paused" ? "secondary" : "outline"}>
+                        {campaign.status}
+                      </Badge>
                     </div>
-                    <Badge variant={promo.status === "active" ? "default" : "secondary"}>{promo.status}</Badge>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -196,22 +183,11 @@ export default function MarketingManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {featuredAuctions.map((auction) => (
-                  <div key={auction.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                    <Image
-                      src={auction.image}
-                      alt={auction.title}
-                      width={80}
-                      height={80}
-                      className="rounded-lg object-cover"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{auction.title}</h3>
-                      <p className="text-sm text-gray-600">{auction.views} views • {auction.bids} bids</p>
-                    </div>
-                    <Button size="sm" variant="outline">Manage</Button>
-                  </div>
-                ))}
+                {loading ? (
+                  <p className="text-sm text-gray-500">Loading featured auctions...</p>
+                ) : (
+                  <p className="text-sm text-gray-500">No featured auctions available. This feature will be implemented soon.</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -231,15 +207,11 @@ export default function MarketingManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {newsletters.map((nl) => (
-                  <div key={nl.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">{nl.subject}</h3>
-                      <p className="text-sm text-gray-600">Sent to: {nl.sentTo}</p>
-                    </div>
-                    <Badge variant={nl.status === "sent" ? "default" : "secondary"}>{nl.status}</Badge>
-                  </div>
-                ))}
+                {loading ? (
+                  <p className="text-sm text-gray-500">Loading newsletters...</p>
+                ) : (
+                  <p className="text-sm text-gray-500">No newsletters available. This feature will be implemented soon.</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -254,17 +226,11 @@ export default function MarketingManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {advertisements.map((ad) => (
-                  <div key={ad.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">{ad.platform}</h3>
-                      <p className="text-sm text-gray-600">
-                        Spend: {ad.spend} • Clicks: {ad.clicks} • Conversions: {ad.conversions}
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline">Details</Button>
-                  </div>
-                ))}
+                {loading ? (
+                  <p className="text-sm text-gray-500">Loading advertisements...</p>
+                ) : (
+                  <p className="text-sm text-gray-500">No advertisements available. This feature will be implemented soon.</p>
+                )}
               </div>
             </CardContent>
           </Card>

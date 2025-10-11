@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken"
 import { getClient } from "./mongodb"
 import { ObjectId } from "mongodb"
 
-export type UserRole = "user" | "moderator" | "admin"
+export type UserRole = "user" | "moderator" | "admin" | "delivery" | "payment_manager" | "marketing" | "support"
 
 export interface User {
   _id: ObjectId
@@ -121,6 +121,6 @@ export async function updateUserRole(userId: string, role: UserRole) {
 }
 
 export function hasPermission(userRole: UserRole, requiredRole: UserRole): boolean {
-  const roleHierarchy = { user: 0, moderator: 1, admin: 2 }
+  const roleHierarchy = { user: 0, moderator: 1, delivery: 1, payment_manager: 1, marketing: 1, support: 1, admin: 2 }
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole]
 }

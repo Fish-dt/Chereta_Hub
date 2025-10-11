@@ -35,7 +35,14 @@ export async function requireAuth(request: NextRequest, requiredRole?: UserRole)
   }
 
   if (requiredRole && user.role !== requiredRole && user.role !== "admin") {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+    // Allow specific roles to access their own resources
+    const roleSpecificAccess = ["delivery", "payment_manager", "marketing", "support"]
+    if (roleSpecificAccess.includes(requiredRole) && user.role !== requiredRole) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+    }
+    if (!roleSpecificAccess.includes(requiredRole)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 })
+    }
   }
 
   return { user }

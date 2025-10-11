@@ -8,49 +8,42 @@ import { Clock, Truck, MoreHorizontal } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
-// Mock data for deliveries
-const deliveryStats = {
-  pending: 5,
-  inTransit: 3,
-  delivered: 12,
-  cancelled: 1,
+// Types
+type DeliveryStats = { pending: number; inTransit: number; delivered: number; cancelled: number }
+type DeliveryOrder = {
+  _id: string
+  item: string
+  buyer: string
+  status: "pending" | "in-transit" | "delivered" | "cancelled"
+  shippingMethod: string
+  address: string
+  eta?: string | null
+  image?: string
 }
 
-const deliveryOrders = [
-  {
-    id: "1",
-    item: "Vintage Guitar",
-    buyer: "John Doe",
-    status: "pending",
-    shippingMethod: "Platform Delivery",
-    address: "Addis Ababa, Ethiopia",
-    endTime: "2d 6h",
-    image: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "2",
-    item: "Antique Watch",
-    buyer: "Sara Ali",
-    status: "in-transit",
-    shippingMethod: "Platform Delivery",
-    address: "Bahir Dar, Ethiopia",
-    endTime: "1d 3h",
-    image: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: "3",
-    item: "Original Oil Painting",
-    buyer: "Mekdes T.",
-    status: "delivered",
-    shippingMethod: "Platform Delivery",
-    address: "Hawassa, Ethiopia",
-    endTime: "Completed",
-    image: "/placeholder.svg?height=80&width=80",
-  },
-]
-
 export default function DeliveryDashboard() {
-  const [orders, setOrders] = useState(deliveryOrders)
+  const [orders, setOrders] = useState<DeliveryOrder[]>([])
+  const [stats, setStats] = useState<DeliveryStats | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/delivery", { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to load deliveries")
+        const data = await res.json()
+        setStats(data.stats)
+        setOrders(Array.isArray(data.orders) ? data.orders : [])
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -66,7 +59,7 @@ export default function DeliveryDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-2xl font-bold">{deliveryStats.pending}</p>
+                <p className="text-2xl font-bold">{stats?.pending ?? 0}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
             </div>
@@ -78,7 +71,7 @@ export default function DeliveryDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm text-gray-600">In Transit</p>
-                <p className="text-2xl font-bold">{deliveryStats.inTransit}</p>
+                <p className="text-2xl font-bold">{stats?.inTransit ?? 0}</p>
               </div>
               <Truck className="h-8 w-8 text-blue-500" />
             </div>
@@ -90,7 +83,7 @@ export default function DeliveryDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm text-gray-600">Delivered</p>
-                <p className="text-2xl font-bold">{deliveryStats.delivered}</p>
+                <p className="text-2xl font-bold">{stats?.delivered ?? 0}</p>
               </div>
               <Truck className="h-8 w-8 text-green-500" />
             </div>
@@ -102,7 +95,7 @@ export default function DeliveryDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm text-gray-600">Cancelled</p>
-                <p className="text-2xl font-bold">{deliveryStats.cancelled}</p>
+                <p className="text-2xl font-bold">{stats?.cancelled ?? 0}</p>
               </div>
               <Truck className="h-8 w-8 text-red-500" />
             </div>
@@ -120,11 +113,15 @@ export default function DeliveryDashboard() {
         </TabsList>
 
         <TabsContent value="all" className="mt-6">
-          {orders.map((order) => (
-            <Card key={order.id} className="mb-4">
+          {loading && orders.length === 0 ? (
+            <p className="text-sm text-gray-500">Loading delivery orders...</p>
+          ) : orders.length === 0 ? (
+            <p className="text-sm text-gray-500">No delivery orders available.</p>
+          ) : orders.map((order) => (
+            <Card key={order._id} className="mb-4">
               <CardContent className="flex items-center gap-4">
                 <Image
-                  src={order.image}
+                  src={order.image || "/placeholder.svg"}
                   alt={order.item}
                   width={80}
                   height={80}
@@ -136,12 +133,12 @@ export default function DeliveryDashboard() {
                     Buyer: {order.buyer} | Address: {order.address} | Shipping: {order.shippingMethod}
                   </p>
                   <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                    <Clock className="h-3 w-3" /> {order.endTime}
+                    <Clock className="h-3 w-3" /> {order.eta || "--"}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" asChild>
-                    <Link href={`/delivery/${order.id}`}>View</Link>
+                    <Link href={`/delivery/${order._id}`}>View</Link>
                   </Button>
                   <Button size="sm" variant="ghost">
                     <MoreHorizontal className="h-4 w-4" />
@@ -154,19 +151,19 @@ export default function DeliveryDashboard() {
 
         <TabsContent value="pending" className="mt-6">
           {orders.filter(o => o.status === "pending").map(o => (
-            <OrderCard key={o.id} order={o} />
+            <OrderCard key={o._id} order={o} />
           ))}
         </TabsContent>
 
         <TabsContent value="in-transit" className="mt-6">
           {orders.filter(o => o.status === "in-transit").map(o => (
-            <OrderCard key={o.id} order={o} />
+            <OrderCard key={o._id} order={o} />
           ))}
         </TabsContent>
 
         <TabsContent value="delivered" className="mt-6">
           {orders.filter(o => o.status === "delivered").map(o => (
-            <OrderCard key={o.id} order={o} />
+            <OrderCard key={o._id} order={o} />
           ))}
         </TabsContent>
       </Tabs>
@@ -175,12 +172,12 @@ export default function DeliveryDashboard() {
 }
 
 // Optional small reusable order card
-function OrderCard({ order }: { order: typeof deliveryOrders[0] }) {
+function OrderCard({ order }: { order: DeliveryOrder }) {
   return (
     <Card className="mb-4">
       <CardContent className="flex items-center gap-4">
         <Image
-          src={order.image}
+          src={order.image || "/placeholder.svg"}
           alt={order.item}
           width={80}
           height={80}
@@ -192,12 +189,12 @@ function OrderCard({ order }: { order: typeof deliveryOrders[0] }) {
             Buyer: {order.buyer} | Address: {order.address} | Shipping: {order.shippingMethod}
           </p>
           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-            <Clock className="h-3 w-3" /> {order.endTime}
+            <Clock className="h-3 w-3" /> {order.eta || "--"}
           </p>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" asChild>
-            <Link href={`/delivery/${order.id}`}>View</Link>
+            <Link href={`/delivery/${order._id}`}>View</Link>
           </Button>
           <Button size="sm" variant="ghost">
             <MoreHorizontal className="h-4 w-4" />

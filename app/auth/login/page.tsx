@@ -37,6 +37,14 @@ export default function LoginPage() {
       const userRole = (session.user as any).role
       if (userRole === "admin" || userRole === "moderator") {
         router.push("/admin")
+      } else if (userRole === "delivery") {
+        router.push("/delivery")
+      } else if (userRole === "payment_manager") {
+        router.push("/payment-manager")
+      } else if (userRole === "marketing") {
+        router.push("/marketing")
+      } else if (userRole === "support") {
+        router.push("/support")
       } else {
         const decodedUrl = decodeURIComponent(callbackUrl)
         router.push(decodedUrl)

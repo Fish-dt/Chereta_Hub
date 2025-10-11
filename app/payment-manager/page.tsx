@@ -1,33 +1,61 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DollarSign, RefreshCw, AlertCircle, CreditCard, CheckCircle, XCircle } from "lucide-react"
 
-const paymentStats = {
-  totalPayments: 15430,
-  pendingPayments: 2300,
-  refundsIssued: 560,
-  chargebacks: 120,
+type PaymentStats = {
+  totalPayments: number
+  totalAmount: number
+  pendingPayments: number
+  completedPayments: number
+  failedPayments: number
+  pendingAmount: number
+  completedAmount: number
+  failedAmount: number
+  refundsIssued: number
+  refundsPending: number
+  refundsAmount: number
+  pendingRefundsAmount: number
 }
 
-const transactions = [
-  { id: "1", user: "Alice", amount: 120, method: "Credit Card", status: "Completed" },
-  { id: "2", user: "Bob", amount: 75, method: "PayPal", status: "Pending" },
-  { id: "3", user: "Chris", amount: 300, method: "Bank Transfer", status: "Refunded" },
-]
-
-const refunds = [
-  { id: "1", user: "Chris", amount: 300, method: "Bank Transfer", status: "Pending" },
-  { id: "2", user: "Bob", amount: 75, method: "PayPal", status: "Pending" },
-]
+type Transaction = {
+  _id: string
+  user: string
+  amount: number
+  method: string
+  status: string
+  createdAt: string
+}
 
 export default function PaymentManagerDashboard() {
-  const [allTransactions, setAllTransactions] = useState(transactions)
-  const [allRefunds, setAllRefunds] = useState(refunds)
+  const [stats, setStats] = useState<PaymentStats | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [refunds, setRefunds] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/payment-manager", { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to load payment data")
+        const data = await res.json()
+        setStats(data.stats)
+        setTransactions(data.transactions || [])
+        // For now, we'll use the same transactions for refunds until we have separate refund data
+        setRefunds(data.transactions?.filter((t: Transaction) => t.status === "refunded") || [])
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
@@ -40,7 +68,7 @@ export default function PaymentManagerDashboard() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-sm text-gray-500">Total Payments</p>
-              <p className="text-2xl font-bold">${paymentStats.totalPayments.toLocaleString()}</p>
+              <p className="text-2xl font-bold">${stats?.totalAmount?.toLocaleString() || 0}</p>
             </div>
             <DollarSign className="h-8 w-8 text-green-600" />
           </CardContent>
@@ -50,7 +78,7 @@ export default function PaymentManagerDashboard() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-sm text-gray-500">Pending Payments</p>
-              <p className="text-2xl font-bold">${paymentStats.pendingPayments.toLocaleString()}</p>
+              <p className="text-2xl font-bold">${stats?.pendingAmount?.toLocaleString() || 0}</p>
             </div>
             <RefreshCw className="h-8 w-8 text-yellow-600" />
           </CardContent>
@@ -60,7 +88,7 @@ export default function PaymentManagerDashboard() {
           <CardContent className="flex items-center justify-between p-6">
             <div>
               <p className="text-sm text-gray-500">Refunds Issued</p>
-              <p className="text-2xl font-bold">${paymentStats.refundsIssued.toLocaleString()}</p>
+              <p className="text-2xl font-bold">${stats?.refundsAmount?.toLocaleString() || 0}</p>
             </div>
             <AlertCircle className="h-8 w-8 text-red-600" />
           </CardContent>
@@ -69,8 +97,8 @@ export default function PaymentManagerDashboard() {
         <Card>
           <CardContent className="flex items-center justify-between p-6">
             <div>
-              <p className="text-sm text-gray-500">Chargebacks</p>
-              <p className="text-2xl font-bold">${paymentStats.chargebacks.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">Completed</p>
+              <p className="text-2xl font-bold">${stats?.completedAmount?.toLocaleString() || 0}</p>
             </div>
             <CreditCard className="h-8 w-8 text-purple-600" />
           </CardContent>
@@ -93,18 +121,24 @@ export default function PaymentManagerDashboard() {
               <CardDescription>Payments processed through all gateways</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {allTransactions.map((t) => (
-                <div key={t.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-semibold">{t.user}</p>
-                    <p className="text-sm text-gray-500">{t.method}</p>
+              {loading ? (
+                <p className="text-sm text-gray-500">Loading transactions...</p>
+              ) : transactions.length === 0 ? (
+                <p className="text-sm text-gray-500">No transactions available.</p>
+              ) : (
+                transactions.map((t) => (
+                  <div key={t._id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-semibold">{t.user}</p>
+                      <p className="text-sm text-gray-500">{t.method}</p>
+                    </div>
+                    <p className="font-bold">${t.amount}</p>
+                    <Badge variant={t.status === "completed" ? "default" : t.status === "pending" ? "secondary" : "destructive"}>
+                      {t.status}
+                    </Badge>
                   </div>
-                  <p className="font-bold">${t.amount}</p>
-                  <Badge variant={t.status === "Completed" ? "default" : t.status === "Pending" ? "secondary" : "destructive"}>
-                    {t.status}
-                  </Badge>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -117,16 +151,22 @@ export default function PaymentManagerDashboard() {
               <CardDescription>Manage pending refunds</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {allRefunds.map((r) => (
-                <div key={r.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-semibold">{r.user}</p>
-                    <p className="text-sm text-gray-500">{r.method}</p>
+              {loading ? (
+                <p className="text-sm text-gray-500">Loading refunds...</p>
+              ) : refunds.length === 0 ? (
+                <p className="text-sm text-gray-500">No refunds available.</p>
+              ) : (
+                refunds.map((r) => (
+                  <div key={r._id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-semibold">{r.user}</p>
+                      <p className="text-sm text-gray-500">{r.method}</p>
+                    </div>
+                    <p className="font-bold">${r.amount}</p>
+                    <Button size="sm" variant="outline">Process Refund</Button>
                   </div>
-                  <p className="font-bold">${r.amount}</p>
-                  <Button size="sm" variant="outline">Process Refund</Button>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>
