@@ -46,8 +46,8 @@ export default function LoginPage() {
       } else if (userRole === "support") {
         router.push("/support")
       } else {
-        const decodedUrl = decodeURIComponent(callbackUrl)
-        router.push(decodedUrl)
+        // Only regular users go to dashboard, all other roles have their own pages
+        router.push("/dashboard")
       }
     }
   }, [session, router, callbackUrl])

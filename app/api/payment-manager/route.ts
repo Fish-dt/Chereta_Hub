@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
     if (status) query.status = status
     if (type) query.type = type
 
-    let collection = "payments"
+    let collection = "processed_payments"
     if (type === "refunds") collection = "refunds"
     if (type === "chargebacks") collection = "chargebacks"
 
-    // Fetch payments/transactions with pagination
+    // Fetch processed payments/transactions with pagination
     const transactions = await db
       .collection(collection)
       .find(query)
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const total = await db.collection(collection).countDocuments(query)
 
     // Get payment statistics
-    const statsAgg = await db.collection("payments").aggregate([
+    const statsAgg = await db.collection("processed_payments").aggregate([
       {
         $group: {
           _id: "$status",
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         await db.collection("refunds").insertOne(refund)
 
         // Update original transaction status
-        await db.collection("payments").updateOne(
+        await db.collection("processed_payments").updateOne(
           { _id: new ObjectId(transactionId) },
           { 
             $set: { 
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
           processedBy: authResult.user._id,
         }
 
-        const result = await db.collection("payments").updateOne(
+        const result = await db.collection("processed_payments").updateOne(
           { _id: new ObjectId(transactionId) },
           { $set: updateData }
         )
