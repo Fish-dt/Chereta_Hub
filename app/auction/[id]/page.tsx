@@ -104,7 +104,7 @@ export default function AuctionDetailPage() {
           await fetch("/api/auctions/finalize", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ auctionId: auction._id })
+            body: JSON.stringify({ auctionId: auction._id.toString() })
           });
   
           // 2. Refresh auction data to get updated status and winner
