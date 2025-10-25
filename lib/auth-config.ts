@@ -105,73 +105,88 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       return true
     },
     async session({ session, token, user }) {
-      try {
-        // Use token fields if available (JWT strategy)
-        if (token) {
-          (session.user as any).id = token.id;
-          (session.user as any).role = token.role;
-          (session.user as any).firstName = token.firstName;
-          (session.user as any).lastName = token.lastName;
-          (session.user as any).image = token.image;
-        }
-        
-        // Ensure session has all required user data
-        if (session.user && !(session.user as any).id && token) {
-          (session.user as any).id = token.id;
-          (session.user as any).role = token.role;
-          (session.user as any).firstName = token.firstName;
-          (session.user as any).lastName = token.lastName;
-          (session.user as any).image = token.image;
-        }
-        
-        return session;
-      } catch (error) {
-        console.error("Error in session callback:", error)
-        return session
+      console.log("Session callback - Token:", token);
+      console.log("Session callback - User:", user);
+      // Use token fields if available (JWT strategy)
+      if (token) {
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).firstName = token.firstName;
+        (session.user as any).lastName = token.lastName;
+        (session.user as any).image = token.image;
+        console.log("Session callback - Session after token:", session);
       }
+      
+      // If role is still undefined, try to get it from the database
+      if (!(session.user as any).role && session.user?.email) {
+        console.log("Session callback - Role still undefined, fetching from database...");
+        const { connectToDatabase } = await import("@/lib/mongodb");
+        const { db } = await connectToDatabase();
+        const dbUser = await db.collection("users").findOne({ email: session.user.email });
+        if (dbUser) {
+          (session.user as any).role = dbUser.role;
+          console.log("Session callback - Role from database:", dbUser.role);
+        }
+      }
+      
+      // Ensure session has all required user data
+      if (session.user && !(session.user as any).id && token) {
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).firstName = token.firstName;
+        (session.user as any).lastName = token.lastName;
+        (session.user as any).image = token.image;
+      }
+      
+      return session;
     },
     async jwt({ token, user, account }) {
-      try {
-        if (user) {
-          const u = user as any;
-          token.id = u.id;
-          token.email = u.email;
-          token.role = u.role;
-          token.firstName = u.firstName;
-          token.lastName = u.lastName;
-          token.image = u.image;
-        }
-        
-        // Handle Google OAuth user data
-        if (account?.provider === "google" && user) {
-          try {
-            const client = await getClient();
-            const db = client.db("auctionhub");
-            const dbUser = await db.collection("users").findOne({ email: user.email });
-            
-            if (dbUser) {
-              token.id = dbUser._id.toString();
-              token.email = dbUser.email;
-              token.role = dbUser.role;
-              token.firstName = dbUser.firstName;
-              token.lastName = dbUser.lastName;
-              token.image = dbUser.avatar;
-            }
-          } catch (error) {
-            console.error("Error fetching user data in JWT callback:", error);
-          }
-        }
-        
-        if (account) {
-          token.accessToken = account.access_token;
-        }
-        return token;
-      } catch (error) {
-        console.error("Error in JWT callback:", error)
-        return token
+      if (user) {
+        const u = user as any;
+        console.log("JWT callback - User data:", u);
+        token.id = u.id;
+        token.email = u.email;
+        token.role = u.role;
+        token.firstName = u.firstName;
+        token.lastName = u.lastName;
+        token.image = u.image;
+        console.log("JWT callback - Token after user:", token);
       }
+      
+      // If role is still undefined, fetch it from database
+      if (!token.role && token.email) {
+        console.log("JWT callback - Role undefined, fetching from database...");
+        const { connectToDatabase } = await import("@/lib/mongodb");
+        const { db } = await connectToDatabase();
+        const dbUser = await db.collection("users").findOne({ email: token.email });
+        if (dbUser) {
+          token.role = dbUser.role;
+          console.log("JWT callback - Role from database:", dbUser.role);
+        }
+      }
+      
+      // Handle Google OAuth user data
+      if (account?.provider === "google" && user) {
+        const client = await getClient();
+        const db = client.db("auctionhub");
+        const dbUser = await db.collection("users").findOne({ email: user.email });
+        
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.email = dbUser.email;
+          token.role = dbUser.role;
+          token.firstName = dbUser.firstName;
+          token.lastName = dbUser.lastName;
+          token.image = dbUser.avatar;
+        }
+      }
+      
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
     },
-    },
+  },
     pages: {
     signIn: "/auth/login",
     error: "/auth/error",
@@ -180,7 +195,6 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     strategy: "jwt",
     },
     secret: process.env.NEXTAUTH_SECRET,
-    allowDangerousEmailAccountLinking: true,
   }
   } catch (error) {
     console.error("Error creating auth options:", error)
