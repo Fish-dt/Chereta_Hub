@@ -3,7 +3,7 @@ import { verifyToken, getUserById, type UserRole } from "./auth"
 import { getServerSession } from "next-auth"
 
 export async function authenticateUser(request: NextRequest) {
-  // 1) Try NextAuth session
+  
   try {
     const { getAuthOptions } = await import("@/lib/auth-config")
     const session = await getServerSession(await getAuthOptions())
