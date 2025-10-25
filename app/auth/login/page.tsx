@@ -12,69 +12,115 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Gavel, Eye, EyeOff, Loader2 } from "lucide-react"
-import { signIn, useSession } from "next-auth/react"
-import { useLanguage } from "@/contexts/language-context"
-import Turnstile from "react-turnstile"
+import { signIn, useSession, getSession } from "next-auth/react"
+
+
+
+function getRedirectUrl(role: string | undefined, callbackUrl: string): string {
+  if (role === "admin" || role === "moderator") {
+    return "/admin";
+  } else if (role === "delivery") {
+    return "/delivery";
+  } else if (role === "payment_manager") {
+    return "/payment-manager";
+  } else if (role === "marketing") {
+    return "/marketing";
+  } else if (role === "support") {
+    return "/support";
+  } else {
+    if (callbackUrl && callbackUrl !== "/dashboard" && !callbackUrl.includes("/auth/")) {
+      return callbackUrl;
+    } else {
+      return "/dashboard";
+    }
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
-  const { t, language } = useLanguage()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [token, setToken] = useState<string | null>(null)
+
 
   // Get the callback URL from search params or default to dashboard
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
 
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (session) {
-      const userRole = (session.user as any).role
-      if (userRole === "admin" || userRole === "moderator") {
-        router.push("/admin")
-      } else if (userRole === "delivery") {
-        router.push("/delivery")
-      } else if (userRole === "payment_manager") {
-        router.push("/payment-manager")
-      } else if (userRole === "marketing") {
-        router.push("/marketing")
-      } else if (userRole === "support") {
-        router.push("/support")
-      } else {
-        // Only regular users go to dashboard, all other roles have their own pages
-        router.push("/dashboard")
-      }
-    }
-  }, [session, router, callbackUrl])
 
-  if (status === "loading" || session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
-    const res = await signIn("credentials", {
+
+    const result = await signIn("credentials", {
       redirect: false,
       email,
       password,
       callbackUrl,
-      turnstileToken: token,
     })
-    if (res?.error) setError("Invalid email or password")
-    else router.push(callbackUrl)
-    setIsLoading(false)
+
+    if (result?.error) {
+      setError("Invalid email or password")
+      setIsLoading(false)
+      return
+    }
   }
+
+
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const userRole = session.user.role;
+      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
+      router.push(redirectUrl);
+    }
+  }, [status, session, router, callbackUrl]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const userRole = (session?.user as any)?.role;
+      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
+      router.push(redirectUrl);
+    }
+  }, [status, session, router, callbackUrl]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const userRole = session.user.role;
+      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
+      router.push(redirectUrl);
+    }
+  }, [status, session, router, callbackUrl]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const userRole = (session?.user as any)?.role;
+      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
+      router.push(redirectUrl);
+    }
+  }, [status, session, router, callbackUrl]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const userRole = (session?.user as any)?.role;
+      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
+      router.push(redirectUrl);
+    }
+  }, [status, session, router, callbackUrl]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const userRole = (session?.user as any)?.role;
+      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
+      router.replace(redirectUrl);
+    }
+  }, [status, session, router, callbackUrl]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -83,15 +129,15 @@ export default function LoginPage() {
           <div className="flex items-center justify-center mb-4">
             <div className="flex items-center gap-2">
               <Gavel className="h-8 w-8 text-primary" />
-              <span className={`text-2xl font-bold ${language === "am" ? "font-amharic" : ""}`}>
-                {language === "am" ? "ጨረታ ማዕከል" : "CheretaHub"}
+              <span className={`text-2xl font-bold`}>
+                {"CheretaHub"}
               </span>
             </div>
           </div>
-          <CardTitle className={`text-2xl font-bold text-center ${language === "am" ? "font-amharic" : ""}`}>
+          <CardTitle className={`text-2xl font-bold text-center`}>
             Welcome
           </CardTitle>
-          <CardDescription className={`text-center ${language === "am" ? "font-amharic" : ""}`}>
+          <CardDescription className={`text-center`}>
             Sign in to your account to continue
           </CardDescription>
         </CardHeader>
@@ -104,7 +150,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className={language === "am" ? "font-amharic" : ""}>
+              <Label htmlFor="email">
                 Email
               </Label>
               <Input
@@ -119,7 +165,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className={language === "am" ? "font-amharic" : ""}>
+              <Label htmlFor="password">
                 Password
               </Label>
               <div className="relative">
@@ -149,16 +195,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex justify-center mt-4">
-              <div className="w-full max-w-md">
-                <Turnstile
-                  sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-                  onVerify={(token) => setToken(token)}
-                  size="normal"
-                  theme="light"
-                />
-              </div>
-            </div>
+
 
 
 
@@ -172,7 +209,7 @@ export default function LoginPage() {
                 "Sign In"
               )}
             </Button>
-            <div className={`text-center text-sm ${language === "am" ? "font-amharic" : ""} mt-2`}>
+            <div className={`text-center text-sm mt-2`}>
               Don't have an account?{' '}
               <Link href="/auth/register" className="text-primary hover:underline">
                 Sign Up
