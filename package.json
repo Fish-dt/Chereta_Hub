@@ -99,5 +99,7 @@
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
+    "webpack": "^5",
+    "webpack-cli": "^5"
   }
 }
