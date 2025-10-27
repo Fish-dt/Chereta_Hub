@@ -11,6 +11,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-5.9-green)](https://www.mongodb.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC)](https://tailwindcss.com/)
+[![Jest](https://img.shields.io/badge/Jest-Tested-C21325)](https://jestjs.io/)
+[![Testing Library](https://img.shields.io/badge/Testing_Library-React-61DAFB)](https://testing-library.com/react)
 
 [Features](#-features) • [Tech Stack](#-tech-stack) • [Installation](#-installation) • [Configuration](#-configuration) • [Deployment](#-deployment) • [API Documentation](#-api-documentation)
 
@@ -27,6 +29,7 @@
 - [Installation](#-installation)
 - [Configuration](#-configuration)
 - [Development](#-development)
+- [Testing](#testing)
 - [Deployment](#-deployment)
 - [Project Structure](#-project-structure)
 - [API Documentation](#-api-documentation)
@@ -115,6 +118,7 @@
 - **Package Manager:** npm/pnpm
 - **Code Quality:** ESLint
 - **Build Tool:** Next.js Turbopack
+- **Testing:** [Jest](https://jestjs.io/) + [React Testing Library](https://testing-library.com/react)
 
 ---
 
@@ -262,6 +266,35 @@ npm run lint
 ```bash
 node scripts/create-admin.js
 ```
+
+### Testing
+
+The project includes comprehensive testing with Jest and React Testing Library:
+
+**Run all tests:**
+```bash
+npm test
+```
+
+**Run tests in watch mode:**
+```bash
+npm run test:watch
+```
+
+**Generate coverage report:**
+```bash
+npm run test:coverage
+```
+
+**Test Coverage:**
+- ✅ **Component Tests** - UI components and business logic (Button, Input, Card, AuctionCard, Filters)
+- ✅ **API Route Tests** - Auctions and Bids endpoints with authentication
+- ✅ **Integration Tests** - Authentication, validation, error handling
+- ✅ **Utility Tests** - Helper functions and utilities
+
+**Total Test Suites:** 13+ | **Total Tests:** 73+
+
+See [`__tests__/README.md`](__tests__/README.md) for detailed testing documentation.
 
 ---
 
@@ -412,6 +445,20 @@ Contributions are welcome! Please follow these steps:
 - Add tests for new features
 - Update documentation as needed
 
+### Testing Guidelines
+
+- Write tests for all new components and API routes
+- Maintain at least 70% code coverage
+- Test critical user flows and business logic
+- Use `npm run test:watch` for development
+- See [`__tests__/README.md`](__tests__/README.md) for detailed testing documentation
+
+**Current Test Coverage:**
+- 🟢 Component Tests: UI and business components
+- 🟢 API Tests: Auctions, Bids, Authentication
+- 🟢 Integration Tests: User flows and error handling
+- 🟡 Coverage: 65+ tests across 13 test suites
+
 ---
 
 ## 📝 License
@@ -422,7 +469,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Authors
 
-- **Your Name** - *Initial work* - [YourGitHub](https://github.com/yourusername)
+- **fisiha** - *Initial work* - [Fish-dt](https://github.com/fish-dt)
 
 ---
 
@@ -435,11 +482,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Support
-
-For support, email support@cheretahub.com or join our [Discord](https://discord.gg/cheretahub).
-
----
 
 ## 🔗 Links
 

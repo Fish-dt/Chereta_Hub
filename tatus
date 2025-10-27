@@ -1,0 +1,39 @@
+[1mdiff --git a/package.json b/package.json[m
+[1mindex 38a26d0..2806176 100644[m
+[1m--- a/package.json[m
+[1m+++ b/package.json[m
+[36m@@ -7,7 +7,10 @@[m
+     "dev": "next dev",[m
+     "lint": "next lint",[m
+     "start": "next start",[m
+[31m-    "generate-secrets": "node scripts/generate-secrets.js"[m
+[32m+[m[32m    "generate-secrets": "node scripts/generate-secrets.js",[m
+[32m+[m[32m    "test": "jest",[m
+[32m+[m[32m    "test:watch": "jest --watch",[m
+[32m+[m[32m    "test:coverage": "jest --coverage"[m
+   },[m
+   "dependencies": {[m
+     "@aws-sdk/credential-providers": "latest",[m
+[36m@@ -81,16 +84,17 @@[m
+   },[m
+   "devDependencies": {[m
+     "@netlify/plugin-nextjs": "^5.13.0",[m
+[32m+[m[32m    "@testing-library/jest-dom": "^6.9.1",[m
+[32m+[m[32m    "@testing-library/react": "^16.3.0",[m
+[32m+[m[32m    "@testing-library/user-event": "^14.6.1",[m
+[32m+[m[32m    "@types/jest": "^30.0.0",[m
+     "@types/jsonwebtoken": "^9.0.10",[m
+     "@types/node": "^22.18.1",[m
+     "@types/nodemailer": "^7.0.1",[m
+     "@types/react": "^19.1.12",[m
+     "@types/react-dom": "^19.1.9",[m
+[31m-    "add": "^2.0.6",[m
+[31m-    "commit": "^0.0.4",[m
+[31m-    "git": "^0.1.5",[m
+[31m-    "package-lock.json": "^1.0.0",[m
+[31m-    "package.json": "^2.0.1",[m
+[32m+[m[32m    "jest": "^30.2.0",[m
+[32m+[m[32m    "jest-environment-jsdom": "^30.2.0",[m
+     "postcss": "^8.5",[m
+     "push": "^0.1.0",[m
+     "tailwindcss": "^3.4.17",[m
