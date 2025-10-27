@@ -8,8 +8,7 @@ import Image from "next/image"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Heart, Clock, Users } from "lucide-react"
-import { useLanguage } from "@/contexts/language-context"
+import { Clock, MapPin, Bookmark } from "lucide-react"
 
 interface AuctionCardProps {
   auction: {
@@ -27,13 +26,13 @@ interface AuctionCardProps {
     }
     bidCount: number
     status: string
+    city?: string
   }
 }
 
 export function AuctionCard({ auction }: AuctionCardProps) {
   const [timeLeft, setTimeLeft] = useState("")
-  const [isWatchlisted, setIsWatchlisted] = useState(false)
-  const { t, language } = useLanguage()
+  const [isBookmarked, setIsBookmarked] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -69,83 +68,99 @@ export function AuctionCard({ auction }: AuctionCardProps) {
     }).format(amount)
   }
 
-  const toggleWatchlist = async (e: React.MouseEvent) => {
+  const toggleBookmark = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // TODO: Implement watchlist functionality
-    setIsWatchlisted(!isWatchlisted)
+    setIsBookmarked(!isBookmarked)
   }
 
-  // Safe image access with fallback
-  const imageUrl =
-    auction.images && auction.images.length > 0 ? auction.images[0] : "/placeholder.jpg"
+  const imageUrl = auction.images && auction.images.length > 0 ? auction.images[0] : "/placeholder.jpg"
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
-      <Link href={`/auction/${auction._id}`}>
-        <div className="relative aspect-square overflow-hidden">
+    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg flex flex-col h-full bg-white dark:bg-slate-950 border-0">
+      <Link href={`/auction/${auction._id}`} className="flex flex-col flex-1">
+        <div className="relative aspect-square overflow-hidden bg-muted">
           <Image
-            src={imageUrl}
+            src={imageUrl || "/placeholder.svg"}
             alt={auction.title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute top-2 left-2">
-            <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
+
+          {/* Timer overlay - top left */}
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-lg text-white shadow-md">
+            <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="font-semibold text-xs whitespace-nowrap">{timeLeft}</span>
+          </div>
+
+          {/* Category badge - top right */}
+          <div className="absolute top-3 right-3 z-10">
+            <Badge
+              variant="secondary"
+              className="bg-white/90 backdrop-blur-md text-foreground font-semibold text-xs shadow-md"
+            >
               {auction.category}
             </Badge>
           </div>
-          <div className="absolute top-2 right-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="bg-background/80 backdrop-blur-sm hover:bg-background"
-              onClick={toggleWatchlist}
-            >
-              <Heart className={`h-4 w-4 ${isWatchlisted ? "fill-red-500 text-red-500" : ""}`} />
-            </Button>
-          </div>
+
           {auction.status === "ended" && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Badge variant="destructive" className="text-lg px-4 py-2">
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+              <Badge variant="destructive" className="text-sm px-3 py-1">
                 Ended
               </Badge>
             </div>
           )}
         </div>
 
-        <CardContent className="p-4">
-          <h3 className={`font-semibold text-lg mb-2 line-clamp-1 ${language === "am" ? "font-amharic" : ""}`}>
+        <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent backdrop-blur-sm"></div>
+
+        <CardContent className="p-3 space-y-2 flex-1 flex flex-col">
+          {/* Title */}
+          <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
             {auction.title}
           </h3>
-          {/* Hide description on list cards; show only on detail page */}
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className={`text-sm text-muted-foreground ${language === "am" ? "font-amharic" : ""}`}>
-                {t("auction.currentBid")}
-              </span>
-              <span className="font-bold text-lg text-primary">{formatCurrency(auction.currentBid)}</span>
+          {/* City and seller info - left and right aligned */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              {auction.city && (
+                <>
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <span className="font-medium">{auction.city}</span>
+                </>
+              )}
             </div>
+            {auction.seller && (
+              <Badge variant="outline" className="text-xs font-medium px-2 py-0.5 bg-slate-50 dark:bg-slate-900">
+                {auction.seller.firstName} {auction.seller.lastName}
+              </Badge>
+            )}
+          </div>
 
-            <div className="flex justify-between items-center text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>
-                  {auction.bidCount} {t("auction.bids")}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>{timeLeft}</span>
-              </div>
-            </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Current Bid</span>
+            <span className="font-bold text-lg text-primary">{formatCurrency(auction.currentBid)}</span>
           </div>
         </CardContent>
 
-        <CardFooter className="p-4 pt-0">
-          <Button className={`w-full ${language === "am" ? "font-amharic" : ""}`} disabled={auction.status === "ended"}>
-            {auction.status === "ended" ? t("auction.ended") : t("auction.placeBid")}
+        <CardFooter className="p-3 pt-0 flex items-center justify-between gap-2">
+          <Button
+            className="flex-1 font-semibold text-sm py-2 h-auto shadow-md hover:shadow-lg transition-all hover:bg-primary/90 hover:backdrop-blur-md"
+            disabled={auction.status === "ended"}
+            variant={auction.status === "ended" ? "outline" : "default"}
+          >
+            {auction.status === "ended" ? "Ended" : "Place Bid"}
+          </Button>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-10 w-10 p-0 rounded-full hover:bg-white/30 hover:backdrop-blur-md dark:hover:bg-white/10 transition-all shadow-sm hover:shadow-md flex-shrink-0"
+            onClick={toggleBookmark}
+          >
+            <Bookmark
+              className={`h-4 w-4 transition-all ${isBookmarked ? "fill-blue-500 text-blue-500" : "text-muted-foreground"}`}
+            />
           </Button>
         </CardFooter>
       </Link>
