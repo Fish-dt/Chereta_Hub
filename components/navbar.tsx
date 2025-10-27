@@ -30,9 +30,12 @@ import {
   Heart,
   ShoppingBag,
   ArrowRight,
+  Languages,
+  Globe,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useTranslation, type Language } from "@/lib/i18n";
 
 export function Navbar() {
   const router = useRouter();
@@ -41,12 +44,26 @@ export function Navbar() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [language, setLanguage] = useState<Language>("en");
+  
+  const { t } = useTranslation(language);
 
   useEffect(() => {
     if (session) {
       fetchNotifications();
     }
+    
+    // Get language from localStorage
+    const savedLang = localStorage.getItem("language") as Language;
+    if (savedLang) {
+      setLanguage(savedLang);
+    }
   }, [session]);
+
+  const changeLanguage = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem("language", lang);
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -73,11 +90,11 @@ export function Navbar() {
   };
 
   const navItems = [
-    { href: "/auctions", label: "Auctions" },
+    { href: "/auctions", label: t("nav.auctions"), key: "auctions" },
     ...(!session
       ? [
-          { href: "/categories", label: "Categories" },
-          { href: "/how-it-works", label: "How it Works" },
+          { href: "/categories", label: t("nav.categories"), key: "categories" },
+          { href: "/how-it-works", label: t("nav.how.it.works"), key: "howItWorks" },
         ]
       : []),
   ];
@@ -92,14 +109,15 @@ export function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
               <Gavel className="h-6 w-6 text-primary" />
-              <span>CheretaHub</span>
+              <span className="hidden sm:inline">CheretaHub</span>
+              <span className="sm:hidden">CH</span>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden lg:flex items-center gap-6">
               {navItems.map((item) => (
                 <Link
-                  key={item.href}
+                  key={item.key}
                   href={item.href}
                   className={`text-sm font-medium transition-colors hover:text-primary ${
                     pathname === item.href ? "text-primary" : "text-muted-foreground"
@@ -111,11 +129,11 @@ export function Navbar() {
             </nav>
 
             {/* Search Bar */}
-            <form onSubmit={handleSearch} className="hidden lg:flex items-center gap-2 flex-1 max-w-sm mx-6">
+            <form onSubmit={handleSearch} className="hidden md:flex lg:hidden xl:flex items-center gap-2 flex-1 max-w-sm mx-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Search auctions..."
+                  placeholder={t("nav.search.placeholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -124,13 +142,40 @@ export function Navbar() {
             </form>
 
             {/* Right Side Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <ThemeToggle />
+
+              {/* Language Switcher */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative" title="Language">
+                    <Globe className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuLabel>Language</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => changeLanguage("en")}
+                    className="cursor-pointer flex items-center justify-between"
+                  >
+                    <span>English</span>
+                    {language === "en" && <Languages className="h-4 w-4 ml-2" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => changeLanguage("am")}
+                    className="cursor-pointer flex items-center justify-between"
+                  >
+                    <span>አማርኛ</span>
+                    {language === "am" && <Languages className="h-4 w-4 ml-2" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {session ? (
                 <>
                   {/* Sell Button */}
-                  <Button asChild variant="ghost" size="icon" aria-label="Sell">
+                  <Button asChild variant="ghost" size="icon" aria-label={t("nav.sell")} className="hidden sm:flex">
                     <Link href="/sell">
                       <Plus className="h-5 w-5" />
                     </Link>
@@ -149,7 +194,7 @@ export function Navbar() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-80">
-                      <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t("nav.notifications")}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {notifications.length > 0 ? (
                         notifications.slice(0, 5).map((notification) => (
@@ -162,17 +207,17 @@ export function Navbar() {
                           </DropdownMenuItem>
                         ))
                       ) : (
-                        <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
+                        <DropdownMenuItem disabled>{t("nav.no.notifications")}</DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/notifications">View All</Link>
+                        <Link href="/notifications">{t("nav.view.all")}</Link>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
 
                   {/* Messages */}
-                  <Button asChild variant="ghost" size="icon">
+                  <Button asChild variant="ghost" size="icon" className="hidden sm:flex">
                     <Link href="/messages">
                       <MessageSquare className="h-5 w-5" />
                     </Link>
@@ -202,38 +247,38 @@ export function Navbar() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link href="/profile">
-                          <User className="mr-2 h-4 w-4" /> Profile
+                          <User className="mr-2 h-4 w-4" /> {t("nav.profile")}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/dashboard">
-                          <ShoppingBag className="mr-2 h-4 w-4" /> Dashboard
+                          <ShoppingBag className="mr-2 h-4 w-4" /> {t("nav.dashboard")}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/watchlist">
-                          <Heart className="mr-2 h-4 w-4" /> Watchlist
+                          <Heart className="mr-2 h-4 w-4" /> {t("nav.watchlist")}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/settings">
-                          <Settings className="mr-2 h-4 w-4" /> Settings
+                          <Settings className="mr-2 h-4 w-4" /> {t("nav.settings")}
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" /> Logout
+                        <LogOut className="mr-2 h-4 w-4" /> {t("nav.logout")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2">
                   <Button asChild variant="ghost" size="sm">
-                    <Link href="/auth/login">Sign In</Link>
+                    <Link href="/auth/login">{t("nav.signin")}</Link>
                   </Button>
                   <Button asChild size="sm">
-                    <Link href="/auth/register">Sign Up</Link>
+                    <Link href="/auth/register">{t("nav.signup")}</Link>
                   </Button>
                 </div>
               )}
@@ -241,16 +286,34 @@ export function Navbar() {
               {/* Mobile Menu */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
+                  <Button variant="ghost" size="icon" className="lg:hidden">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-80">
+                <SheetContent side="right" className="w-80 overflow-y-auto">
                   <div className="flex flex-col gap-4 mt-8">
+                    {/* Mobile User Info */}
+                    {session && (
+                      <div className="flex items-center gap-3 pb-4 border-b">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={(session.user as any)?.avatar || undefined} />
+                          <AvatarFallback>
+                            <User className="h-6 w-6" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {(session.user as any)?.firstName} {(session.user as any)?.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{(session.user as any)?.email}</p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Mobile Search */}
                     <form onSubmit={handleSearch} className="flex gap-2">
                       <Input
-                        placeholder="Search auctions..."
+                        placeholder={t("nav.search.placeholder")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -263,7 +326,7 @@ export function Navbar() {
                     <nav className="flex flex-col gap-2">
                       {navItems.map((item) => (
                         <Link
-                          key={item.href}
+                          key={item.key}
                           href={item.href}
                           className={`text-sm font-medium p-2 rounded-md transition-colors hover:bg-accent ${
                             pathname === item.href ? "bg-accent" : ""
@@ -276,12 +339,45 @@ export function Navbar() {
 
                     {session && (
                       <>
-                        <div className="border-t pt-4">
-                          <Link href="/sell" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent">
-                            <Plus className="h-4 w-4" /> Sell
+                        <div className="border-t pt-4 space-y-2">
+                          <Link href="/sell" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent w-full">
+                            <Plus className="h-4 w-4" /> {t("nav.sell")}
+                          </Link>
+                          <Link href="/messages" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent w-full">
+                            <MessageSquare className="h-4 w-4" /> {t("nav.messages")}
+                          </Link>
+                          <Link href="/profile" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent w-full">
+                            <User className="h-4 w-4" /> {t("nav.profile")}
+                          </Link>
+                          <Link href="/dashboard" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent w-full">
+                            <ShoppingBag className="h-4 w-4" /> {t("nav.dashboard")}
+                          </Link>
+                          <Link href="/watchlist" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent w-full">
+                            <Heart className="h-4 w-4" /> {t("nav.watchlist")}
+                          </Link>
+                          <Link href="/settings" className="flex items-center gap-2 p-2 rounded-md hover:bg-accent w-full">
+                            <Settings className="h-4 w-4" /> {t("nav.settings")}
                           </Link>
                         </div>
+                        <Button 
+                          onClick={handleLogout} 
+                          variant="outline" 
+                          className="w-full justify-start"
+                        >
+                          <LogOut className="mr-2 h-4 w-4" /> {t("nav.logout")}
+                        </Button>
                       </>
+                    )}
+
+                    {!session && (
+                      <div className="border-t pt-4 space-y-2">
+                        <Button asChild variant="outline" className="w-full">
+                          <Link href="/auth/login">{t("nav.signin")}</Link>
+                        </Button>
+                        <Button asChild className="w-full">
+                          <Link href="/auth/register">{t("nav.signup")}</Link>
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </SheetContent>
@@ -298,7 +394,12 @@ export function Navbar() {
             href="/auction/68b839de274e309cfdc691c7"
             className="flex items-center gap-2 hover:underline"
           >
-            ✨ Own a Piece of History – “Mother Ethiopia” by Afewerk Tekle! Limited-edition lithograph.
+            <span className="hidden sm:inline">
+              ✨ Own a Piece of History – "Mother Ethiopia" by Afewerk Tekle! Limited-edition lithograph.
+            </span>
+            <span className="sm:hidden">
+              ✨ Limited Edition "Mother Ethiopia" Available Now
+            </span>
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
