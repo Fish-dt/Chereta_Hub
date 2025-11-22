@@ -138,7 +138,7 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/Chereta-Hub.git
+git clone https://github.com/Fish=dt/Chereta-Hub.git
 cd Chereta-Hub
 ```
 
@@ -297,26 +297,6 @@ npm run test:coverage
 See [`__tests__/README.md`](__tests__/README.md) for detailed testing documentation.
 
 ---
-
-## 🚢 Deployment
-
-### Vercel (Recommended)
-
-1. Push your code to GitHub
-2. Import project in [Vercel](https://vercel.com)
-3. Add environment variables
-4. Deploy!
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/Chereta-Hub)
-
-### Netlify
-
-1. Push your code to GitHub
-2. Connect repository in [Netlify](https://netlify.com)
-3. Build command: `npm run build`
-4. Publish directory: `.next`
-5. Add environment variables
-6. Deploy!
 
 ### Other Platforms
 
