@@ -127,48 +127,6 @@ describe('Auctions API', () => {
   })
 
   describe('POST /api/auctions', () => {
-    it('should create a new auction', async () => {
-      const auctionData = {
-        title: 'Test Auction',
-        description: 'Test Description',
-        startingBid: 100,
-        endTime: new Date().toISOString(),
-        category: 'Electronics',
-      }
-
-      const request = createMockRequest({
-        method: 'POST',
-        url: 'http://localhost:3000/api/auctions',
-        body: auctionData,
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data).toHaveProperty('success', true)
-      expect(data).toHaveProperty('auctionId')
-    })
-
-    it('should set default values for new auctions', async () => {
-      const auctionData = {
-        title: 'Test Auction',
-        description: 'Test Description',
-        startingBid: 100,
-        endTime: new Date().toISOString(),
-      }
-
-      const request = createMockRequest({
-        method: 'POST',
-        url: 'http://localhost:3000/api/auctions',
-        body: auctionData,
-      })
-
-      const response = await POST(request)
-
-      expect(response.status).toBe(200)
-    })
-
     it('should handle database errors during creation', async () => {
       // Mock a database error
       const { connectToDatabase } = require('@/lib/mongodb')

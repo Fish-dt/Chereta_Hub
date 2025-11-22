@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Gavel, Eye, EyeOff, Loader2 } from "lucide-react"
 import { signIn, useSession, getSession } from "next-auth/react"
+import { Turnstile } from "@marsidev/react-turnstile"
 
 
 
@@ -46,6 +47,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [turnstileToken, setTurnstileToken] = useState<string>("")
 
 
   // Get the callback URL from search params or default to dashboard
@@ -58,10 +60,17 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
+    if (!turnstileToken && process.env.NODE_ENV === "production") {
+      setError("Please complete the verification")
+      setIsLoading(false)
+      return
+    }
+
     const result = await signIn("credentials", {
       redirect: false,
       email,
       password,
+      turnstileToken,
       callbackUrl,
     })
 
@@ -75,48 +84,8 @@ export default function LoginPage() {
 
 
   useEffect(() => {
-    if (status === "authenticated") {
-      const userRole = session.user.role;
-      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
-      router.push(redirectUrl);
-    }
-  }, [status, session, router, callbackUrl]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      const userRole = (session?.user as any)?.role;
-      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
-      router.push(redirectUrl);
-    }
-  }, [status, session, router, callbackUrl]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      const userRole = session.user.role;
-      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
-      router.push(redirectUrl);
-    }
-  }, [status, session, router, callbackUrl]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      const userRole = (session?.user as any)?.role;
-      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
-      router.push(redirectUrl);
-    }
-  }, [status, session, router, callbackUrl]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      const userRole = (session?.user as any)?.role;
-      const redirectUrl = getRedirectUrl(userRole, callbackUrl);
-      router.push(redirectUrl);
-    }
-  }, [status, session, router, callbackUrl]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      const userRole = (session?.user as any)?.role;
+    if (status === "authenticated" && session?.user) {
+      const userRole = (session.user as any)?.role;
       const redirectUrl = getRedirectUrl(userRole, callbackUrl);
       router.replace(redirectUrl);
     }
@@ -199,7 +168,19 @@ export default function LoginPage() {
 
 
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <div className="flex justify-center">
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onError={() => {
+                  setTurnstileToken("")
+                  setError("Verification failed. Please try again.")
+                }}
+                onExpire={() => setTurnstileToken("")}
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading || (!turnstileToken && process.env.NODE_ENV === "production")}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

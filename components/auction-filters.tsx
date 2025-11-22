@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 
 const categories = [
   "Electronics",
@@ -49,7 +49,7 @@ export function AuctionFilters({
   selectedStatus,
   onStatusChange,
 }: AuctionFiltersProps) {
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     onCategoryChange(checked ? category : null)

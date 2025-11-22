@@ -8,15 +8,10 @@ jest.mock('next-auth/react', () => ({
   ),
 }))
 
-jest.mock('@/contexts/theme-context', () => ({
-  ThemeProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="theme-provider">{children}</div>
-  ),
-}))
-
-jest.mock('@/contexts/language-context', () => ({
-  LanguageProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="language-provider">{children}</div>
+jest.mock('@/store/Provider', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="redux-provider">{children}</div>
   ),
 }))
 
@@ -45,8 +40,7 @@ describe('Providers Component', () => {
     )
 
     expect(getByTestId('session-provider')).toBeInTheDocument()
-    expect(getByTestId('theme-provider')).toBeInTheDocument()
-    expect(getByTestId('language-provider')).toBeInTheDocument()
+    expect(getByTestId('redux-provider')).toBeInTheDocument()
     expect(getByTestId('navbar')).toBeInTheDocument()
     expect(getByTestId('footer')).toBeInTheDocument()
     expect(getByTestId('toaster')).toBeInTheDocument()
@@ -73,11 +67,9 @@ describe('Providers Component', () => {
 
     // Verify the nesting structure
     const sessionProvider = getByTestId(container, 'session-provider')
-    const themeProvider = getByTestId(container, 'theme-provider')
-    const languageProvider = getByTestId(container, 'language-provider')
+    const reduxProvider = getByTestId(container, 'redux-provider')
 
-    expect(sessionProvider).toContainElement(themeProvider)
-    expect(themeProvider).toContainElement(languageProvider)
+    expect(sessionProvider).toContainElement(reduxProvider)
   })
 })
 

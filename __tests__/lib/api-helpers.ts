@@ -30,10 +30,12 @@ export function createMockRequest({
 
   if (body && method !== 'GET') {
     requestInit.body = JSON.stringify(body)
-    headers['Content-Type'] = 'application/json'
+    if (requestInit.headers) {
+      requestInit.headers.set('Content-Type', 'application/json')
+    }
   }
 
-  return new NextRequest(urlObj, requestInit)
+  return new NextRequest(urlObj.toString(), requestInit)
 }
 
 /**

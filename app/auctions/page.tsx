@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter } from "lucide-react"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 
 interface Auction {
   _id: string
@@ -35,7 +35,7 @@ export default function AuctionsPage() {
   const [auctions, setAuctions] = useState<Auction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
   // Filters

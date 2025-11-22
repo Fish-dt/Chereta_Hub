@@ -35,7 +35,10 @@ import {
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useTranslation, type Language } from "@/lib/i18n";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useAppDispatch } from "@/store/hooks";
+import { setLanguage } from "@/store/slices/languageSlice";
+import type { Language } from "@/lib/i18n";
 
 export function Navbar() {
   const router = useRouter();
@@ -44,25 +47,17 @@ export function Navbar() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [language, setLanguage] = useState<Language>("en");
-  
-  const { t } = useTranslation(language);
+  const { t, language } = useTranslation();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (session) {
       fetchNotifications();
     }
-    
-    // Get language from localStorage
-    const savedLang = localStorage.getItem("language") as Language;
-    if (savedLang) {
-      setLanguage(savedLang);
-    }
   }, [session]);
 
   const changeLanguage = (lang: Language) => {
-    setLanguage(lang);
-    localStorage.setItem("language", lang);
+    dispatch(setLanguage(lang));
   };
 
   const fetchNotifications = async () => {

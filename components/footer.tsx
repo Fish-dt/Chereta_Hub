@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { Gavel } from "lucide-react"
-import { useLanguage } from "@/contexts/language-context"
+import { useAppSelector } from "@/store/hooks"
+import { selectLanguage } from "@/store/slices/languageSlice"
 
 export function Footer() {
-  const { language } = useLanguage()
+  const language = useAppSelector(selectLanguage)
 
   return (
     <footer className="bg-gray-900 text-white py-8">

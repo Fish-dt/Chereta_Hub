@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Smartphone, Car, Gem, Home, Shirt, Gamepad2, Book, Music } from "lucide-react"
 import Link from "next/link"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 
 const categories = [
   { name: "Electronics", icon: Smartphone, color: "bg-blue-100 text-blue-600" },
@@ -18,7 +18,7 @@ const categories = [
 ]
 
 export function CategoriesSection() {
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
 
   return (
     <section className="py-16 px-4 bg-gray-50 dark:bg-gray-900">

@@ -19,7 +19,7 @@ import { format } from "date-fns"
 import { CalendarIcon, Upload, X, Loader2, AlertCircle } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 
 const categories = [
   "Electronics",
@@ -39,7 +39,7 @@ const conditions = ["New", "Like New", "Excellent", "Good", "Fair", "Poor"]
 export default function SellPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")

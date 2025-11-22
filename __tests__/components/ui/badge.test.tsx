@@ -40,7 +40,7 @@ describe('Badge Component', () => {
   it('should render as a span by default', () => {
     render(<Badge>Badge</Badge>)
     const badge = screen.getByText('Badge')
-    expect(badge.tagName).toBe('DIV')
+    expect(badge.tagName).toBe('SPAN')
   })
 
   it('should render with children', () => {

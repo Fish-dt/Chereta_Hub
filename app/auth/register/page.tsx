@@ -14,12 +14,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Gavel, Eye, EyeOff, Loader2 } from "lucide-react"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 
 export default function RegisterPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",

@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AuctionDetailSkeleton } from "@/components/skeletons/auction-detail-skeleton"
 import { Clock, Eye, Heart, Share2, Flag, User, Star, Gavel, Shield, Loader2 } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 import { QRCodeCanvas } from "qrcode.react";
 import { Facebook, Twitter, Instagram, Send } from "lucide-react";
 
@@ -57,7 +57,7 @@ export default function AuctionDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
 
   const [auction, setAuction] = useState<Auction | null>(null)
   const [bids, setBids] = useState<Bid[]>([])

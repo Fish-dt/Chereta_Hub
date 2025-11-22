@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Gavel, TrendingUp, Shield } from "lucide-react"
 import Link from "next/link"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 import { useSession } from "next-auth/react"
 
 export function HeroSection() {
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
   const { data: session } = useSession()
 
   return (

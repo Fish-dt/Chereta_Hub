@@ -6,12 +6,12 @@ import { AuctionCard } from "@/components/auction-card"
 import { AuctionCardSkeleton } from "@/components/skeletons/auction-card-skeleton"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 
 export function FeaturedAuctions() {
   const [auctions, setAuctions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {

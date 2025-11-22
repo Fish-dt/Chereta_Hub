@@ -31,30 +31,35 @@ interface AuctionCardProps {
 }
 
 export function AuctionCard({ auction }: AuctionCardProps) {
-  const [timeLeft, setTimeLeft] = useState("")
+  const calculateTimeLeft = () => {
+    const now = new Date().getTime()
+    const endTime = new Date(auction.endTime).getTime()
+    const difference = endTime - now
+
+    if (difference > 0) {
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
+
+      if (days > 0) {
+        return `${days}d ${hours}h`
+      } else if (hours > 0) {
+        return `${hours}h ${minutes}m`
+      } else {
+        return `${minutes}m`
+      }
+    } else {
+      return "Ended"
+    }
+  }
+
+  const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeft())
   const [isBookmarked, setIsBookmarked] = useState(false)
 
   useEffect(() => {
+    setTimeLeft(calculateTimeLeft())
     const timer = setInterval(() => {
-      const now = new Date().getTime()
-      const endTime = new Date(auction.endTime).getTime()
-      const difference = endTime - now
-
-      if (difference > 0) {
-        const days = Math.floor(difference / (1000 * 60 * 60 * 24))
-        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
-
-        if (days > 0) {
-          setTimeLeft(`${days}d ${hours}h`)
-        } else if (hours > 0) {
-          setTimeLeft(`${hours}h ${minutes}m`)
-        } else {
-          setTimeLeft(`${minutes}m`)
-        }
-      } else {
-        setTimeLeft("Ended")
-      }
+      setTimeLeft(calculateTimeLeft())
     }, 1000)
 
     return () => clearInterval(timer)
@@ -141,6 +146,11 @@ export function AuctionCard({ auction }: AuctionCardProps) {
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Current Bid</span>
             <span className="font-bold text-lg text-primary">{formatCurrency(auction.currentBid)}</span>
           </div>
+          {auction.bidCount > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {auction.bidCount} {auction.bidCount === 1 ? 'bid' : 'bids'}
+            </div>
+          )}
         </CardContent>
 
         <CardFooter className="p-3 pt-0 flex items-center justify-between gap-2">

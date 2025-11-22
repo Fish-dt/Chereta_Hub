@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { User, Star, Trophy, ShoppingBag, Gavel, Edit, Save, X, Loader2 } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 import { DepositDialog } from "@/components/deposit-dialog"
 
 
@@ -44,7 +44,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)

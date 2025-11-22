@@ -27,7 +27,7 @@ import {
   Activity,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,7 +86,7 @@ interface AdminStats {
 
 export default function AdminPage() {
   const { data: session } = useSession();
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
   const [users, setUsers] = useState<User[]>([])
   const [auctions, setAuctions] = useState<Auction[]>([])
   const [stats, setStats] = useState<AdminStats>({

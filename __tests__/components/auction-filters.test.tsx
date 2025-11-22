@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { AuctionFilters } from '@/components/auction-filters'
 
-// Mock useLanguage
-jest.mock('@/contexts/language-context', () => ({
-  useLanguage: () => ({
+// Mock useTranslation hook
+jest.mock('@/hooks/useTranslation', () => ({
+  useTranslation: () => ({
     t: (key: string) => key,
     language: 'en',
   }),
@@ -70,7 +70,7 @@ describe('AuctionFilters', () => {
   it('should call onConditionChange when condition is selected', () => {
     render(<AuctionFilters {...mockProps} />)
 
-    const conditionCheckbox = screen.getByRole('checkbox', { name: /new/i })
+    const conditionCheckbox = screen.getByRole('checkbox', { name: /^new$/i })
     fireEvent.click(conditionCheckbox)
 
     expect(mockProps.onConditionChange).toHaveBeenCalledWith(['New'])
@@ -99,14 +99,14 @@ describe('AuctionFilters', () => {
   it('should display selected conditions', () => {
     render(<AuctionFilters {...mockProps} selectedConditions={['New', 'Excellent']} />)
 
-    expect(screen.getByRole('checkbox', { name: /new/i })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: /excellent/i })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: /^new$/i })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: /^excellent$/i })).toBeChecked()
   })
 
   it('should remove condition when unchecked', () => {
     render(<AuctionFilters {...mockProps} selectedConditions={['New']} />)
 
-    const checkbox = screen.getByRole('checkbox', { name: /new/i })
+    const checkbox = screen.getByRole('checkbox', { name: /^new$/i })
     fireEvent.click(checkbox)
 
     expect(mockProps.onConditionChange).toHaveBeenCalledWith([])

@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MessageCircle, Send, User } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { useLanguage } from "@/contexts/language-context"
+import { useTranslation } from "@/hooks/useTranslation"
 import { format } from "date-fns"
 
 interface Conversation {
@@ -36,7 +36,7 @@ interface Message {
 
 export default function MessagesPage() {
   const { data: session } = useSession();
-  const { t, language } = useLanguage()
+  const { t, language } = useTranslation()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
